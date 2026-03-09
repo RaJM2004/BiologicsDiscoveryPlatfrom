@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hit Screening - Biologics Discovery Platform</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="brand"><span>🧬</span> BioPlatform</div>
+            <ul class="nav-links">
+                <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
+                <li class="nav-item"><a href="hit_screening.html" class="active">Hit Screening</a></li>
+                <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <!-- Control Panel Header -->
+            <div
+                style="background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="page-title" style="margin-bottom: 0;">Virtual Screening Console</h1>
+                    <span style="font-family: monospace; color: var(--success); font-size: 0.85rem;"> > SYSTEM STATUS:
+                        ONLINE | MODEL: XGBOOST-HYBRID</span>
+                </div>
+                <div
+                    style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 0.5rem 1rem; border-radius: 6px; color: var(--success); font-weight: 600; font-size: 0.9rem;">
+                    GPU CLUSTER: READY
+                </div>
+            </div>
+
+            <div class="grid fade-in" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <!-- Launch Console -->
+                <div class="card glass-card tech-border">
+                    <div class="card-header">
+                        <h3 class="card-title">Initiate Docking Protocol</h3>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; gap: 1.5rem;">
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Target
+                                    PDB ID</label>
+                                <div
+                                    style="display: flex; align-items: center; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 0 0.75rem;">
+                                    <span style="color: #64748b;">🧬</span>
+                                    <input type="text" id="screen-target-id" placeholder="Ex: 4INS"
+                                        style="width: 100%; padding: 0.75rem; background: transparent; border: none; color: white; font-family: monospace;">
+                                </div>
+                            </div>
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Structure
+                                Library (.smi)</label>
+                            <div
+                                style="display: flex; align-items: center; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem;">
+                                <span style="color: #64748b; margin-right: 0.5rem;">📁</span>
+                                <input type="file" id="screen-file" accept=".smi,.txt,.csv"
+                                    style="width: 100%; color: white; font-family: monospace;">
+                                <input type="hidden" id="screen-library-id" value="Custom-Upload">
+                            </div>
+                        </div>
+                        <button id="run-screen-btn"
+                            style="background: var(--gradient-primary); color: white; padding: 1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 1rem; box-shadow: 0 4px 20px rgba(14, 165, 233, 0.3); transition: transform 0.1s;">
+                            Execute Screening
+                        </button>
+                    </div>
+                    <div id="screen-status" style="margin-top: 1.5rem; font-family: monospace; font-size: 0.9rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Monitor -->
+            <div class="card glass-card" style="position: relative; overflow: hidden;">
+                <div class="scanner-line"></div>
+                <div class="card-header">
+                    <h3 class="card-title">Real-Time Queue Monitor</h3>
+                </div>
+                <div class="card-body">
+                    <div id="jobs-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <p style="color: var(--text-muted); text-align: center; margin-top: 2rem;">Queue Empty.
+                            System Idle.</p>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <script>
+        document.getElementById('run-screen-btn').addEventListener('click', async () => {
+            const targetId = document.getElementById('screen-target-id').value;
+            const fileInput = document.getElementById('screen-file');
+            const statusEl = document.getElementById('screen-status');
+
+            if (!targetId) { alert("Please enter a Target ID"); return; }
+            if (!fileInput.files[0]) { alert("Please select a .smi file"); return; }
+
+            statusEl.innerHTML = '<span style="color: #94a3b8;">Uploading & Initializing Real Inference...</span>';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            // URL params for target_id and library_id
+            const libId = fileInput.files[0].name;
+
+            try {
+                const res = await fetch(`http://127.0.0.1:8000/api/screening/run?target_id=${targetId}&library_id=${libId}`, {
+                    method: 'POST',
+                    body: formData // No Content-Type header; browser sets it with boundary
+                });
+
+                if (res.ok) {
+                    statusEl.innerHTML = '<span style="color: #4ade80;">✓ AI Inference Started. Job ID: ' + (await res.json()).id + '</span>';
+                    loadJobs();
+                } else {
+                    throw new Error('Failed');
+                }
+            } catch (e) {
+                statusEl.innerHTML = '<span style="color: #f87171;">Error starting job.</span>';
+                console.error(e);
+            }
+        });
+
+        async function loadJobs() {
+            const container = document.getElementById('jobs-list');
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/screening/');
+                const jobs = await res.json();
+
+                if (jobs.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted);">No active jobs.</p>';
+                    return;
+                }
+
+                container.innerHTML = jobs.map(j => {
+                    let detailsHtml = '';
+                    if (j.status === 'Completed' && j.results) {
+                        // Render scientific results table
+                        const hits = j.results.top_hits || [];
+                        const rows = hits.map(h => `
+                                        <tr style="border-bottom: 1px solid #334155;">
+                                            <td style="padding: 0.5rem; color: #60a5fa;">${h.molecule_id}</td>
+                                            <td style="padding: 0.5rem; color: #4ade80;">${h.affinity} kcal/mol</td>
+                                            <td style="padding: 0.5rem;">${(h.confidence * 100).toFixed(1)}%</td>
+                                        </tr>
+                                    `).join('');
+
+                        detailsHtml = `
+                                        <div style="margin-top: 1rem; background: #0f172a; padding: 1rem; border-radius: 6px;">
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                                                <span>Model: <strong>${j.results.model_used || 'XGBoost-Hybrid'}</strong></span>
+                                                <span>Hits Found: ${j.results.hits_found}</span>
+                                            </div>
+                                            <table style="width: 100%; font-size: 0.9rem; text-align: left; border-collapse: collapse;">
+                                                <thead>
+                                                    <tr style="color: var(--text-muted);">
+                                                        <th style="padding: 0.5rem;">Molecule ID</th>
+                                                        <th style="padding: 0.5rem;">Affinity</th>
+                                                        <th style="padding: 0.5rem;">Confidence</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>${rows}</tbody>
+                                            </table>
+                                        </div>
+                                    `;
+                    }
+
+                    const statusColor = j.status === 'Completed' ? '#4ade80' :
+                        j.status === 'Running' ? '#facc15' : '#94a3b8';
+
+                    return `
+                                <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 1rem; background: var(--background-dark);">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <span style="font-weight: 600; color: white;">Job ${j._id.substring(0, 8)}...</span>
+                                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                Target: ${j.target_id} | Lib: ${j.library_id}
+                                            </div>
+                                        </div>
+                                        <span style="border: 1px solid ${statusColor}; color: ${statusColor}; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                            ${j.status.toUpperCase()}
+                                        </span>
+                                    </div>
+                                    ${detailsHtml}
+                                </div>
+                            `}).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadJobs);
+        // Auto-refresh every 5 seconds to show progress
+        setInterval(loadJobs, 5000);
+    </script>
+    </div>
+    </main>
+    </div>
+    <script src="../static/js/main.js"></script>
+    <script src="../static/js/chatbot.js"></script>
+</body>
+
+</html>

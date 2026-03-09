@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blinded Results - Biologics Discovery Platform</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        .secret-table th {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.75rem;
+            color: var(--primary-color);
+            background: rgba(14, 165, 233, 0.05);
+        }
+
+        .blind-id {
+            font-family: 'JetBrains Mono', monospace;
+            color: #facc15;
+            letter-spacing: 1px;
+        }
+
+        .blurred-text {
+            color: transparent;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            user-select: none;
+            transition: all 0.5s ease;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .revealed-text {
+            color: white;
+            text-shadow: none;
+            background: transparent;
+        }
+
+        /* Scanline effect for table */
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            opacity: 0.1;
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="brand"><span>🧬</span> BioPlatform</div>
+            <ul class="nav-links">
+                <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
+                <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
+                <li class="nav-item"><a href="blinded_results.html" class="active">Blinded Results</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <h1 class="page-title">Blinded Study Design</h1>
+                <div
+                    style="font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; color: var(--primary-color); border: 1px solid var(--primary-color); padding: 0.25rem 0.75rem; border-radius: 4px;">
+                    SECURE_MODE: ACTIVE
+                </div>
+            </div>
+
+            <div class="glass-card tech-border fade-in" style="position: relative; min-height: 400px;">
+                <div class="scan-overlay"></div>
+                <div class="card-header"
+                    style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 class="card-title">🔒 Encrypted Experiment Data</h3>
+                        <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">Double-blind
+                            protocol enforced.</p>
+                    </div>
+                    <button id="reveal-btn" class="glass-card"
+                        style="padding: 0.75rem 1.5rem; color: white; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1);">
+                        <span id="lock-icon">🔐</span>
+                        <span id="reveal-text">DECRYPT DATA</span>
+                    </button>
+                </div>
+
+                <div class="card-body" style="padding: 0;">
+                    <table style="width: 100%; border-collapse: collapse;" class="secret-table">
+                        <thead>
+                            <tr>
+                                <th style="padding: 1.25rem;">Blinded ID</th>
+                                <th style="padding: 1.25rem;">Assay Type</th>
+                                <th style="padding: 1.25rem;">Status</th>
+                                <th style="padding: 1.25rem;">True Identity (Hashed)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="blinded-table-body">
+                            <tr>
+                                <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                                    Initiating secure connection...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../static/js/main.js"></script>
+    <script>
+        let isRevealed = false;
+
+        async function loadBlindedData() {
+            const tbody = document.getElementById('blinded-table-body');
+            try {
+                // Fetch SANITIZED data (No real names)
+                const res = await fetch('http://127.0.0.1:8000/api/experiments/blinded');
+                const experiments = await res.json();
+
+                if (experiments.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">No experimental data found in database.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = experiments.map((exp) => {
+                    let statusColor = '#94a3b8';
+                    if (exp.status === 'Running') statusColor = '#facc15';
+                    if (exp.status === 'Completed') statusColor = '#4ade80';
+                    if (exp.status === 'Failed') statusColor = '#f43f5e';
+
+                    return `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+                            <td style="padding: 1.25rem;" class="blind-id">${exp.blinded_id}</td>
+                            <td style="padding: 1.25rem; color: white;">${exp.experiment_type}</td>
+                            <td style="padding: 1.25rem;">
+                                <span style="color: ${statusColor}; font-weight: 500; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="width: 6px; height: 6px; border-radius: 50%; background: ${statusColor}; box-shadow: 0 0 8px ${statusColor};"></span>
+                                    ${exp.status}
+                                </span>
+                            </td>
+                            <td style="padding: 1.25rem; font-family: 'JetBrains Mono', monospace;">
+                                <!-- Secure Placeholder -->
+                                <span class="true-identity blurred-text" data-blind-id="${exp.blinded_id}">
+                                    ${generateRandomHash(12)}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="4" style="padding: 2rem; text-align: center; color: #f43f5e;">System Error: Connection Refused.</td></tr>';
+            }
+        }
+
+        function generateRandomHash(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        document.getElementById('reveal-btn').addEventListener('click', async () => {
+            isRevealed = !isRevealed;
+            const elements = document.querySelectorAll('.true-identity');
+            const btnText = document.getElementById('reveal-text');
+            const btnIcon = document.getElementById('lock-icon');
+            const btn = document.getElementById('reveal-btn');
+
+            if (isRevealed) {
+                // --- UNBLINDING PROCESS ---
+                btn.style.borderColor = '#4ade80';
+                btnText.style.color = '#4ade80';
+                btnIcon.innerText = '🔓';
+                btnText.innerHTML = 'DECRYPTING...';
+
+                // Fetch REAL data
+                try {
+                    const res = await fetch('http://127.0.0.1:8000/api/experiments/');
+                    const allData = await res.json();
+
+                    // Create lookup map
+                    const lookup = {};
+                    allData.forEach(e => {
+                        if (e.blinded_id) lookup[e.blinded_id] = e.name;
+                    });
+
+                    btnText.innerText = 'ACCESS GRANTED';
+
+                    elements.forEach(el => {
+                        const blindId = el.getAttribute('data-blind-id');
+                        const realName = lookup[blindId] || "UNKNOWN ID";
+
+                        let iterations = 0;
+                        const interval = setInterval(() => {
+                            el.innerText = generateRandomHash(realName.length);
+                            iterations++;
+                            if (iterations > 5) {
+                                clearInterval(interval);
+                                el.innerText = realName;
+                                el.classList.remove('blurred-text');
+                                el.classList.add('revealed-text');
+                            }
+                        }, 50);
+                    });
+                } catch (e) {
+                    alert("Failed to fetch unblinded data: " + e);
+                    isRevealed = false; // reset
+                }
+
+            } else {
+                // --- RE-BLINDING ---
+                btn.style.borderColor = 'rgba(255,255,255,0.1)';
+                btnText.style.color = 'white';
+                btnIcon.innerText = '🔐';
+                btnText.innerText = 'DECRYPT DATA';
+
+                elements.forEach(el => {
+                    el.classList.remove('revealed-text');
+                    el.classList.add('blurred-text');
+                    el.innerText = generateRandomHash(12);
+                });
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadBlindedData);
+    </script>
+    <script src="../static/js/chatbot.js"></script>
+</body>
+
+</html>

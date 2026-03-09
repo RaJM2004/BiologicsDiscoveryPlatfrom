@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Biologics Discovery Platform</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--background-dark) 0%, var(--background-card) 100%);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            background-color: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .login-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+            font-size: 1.75rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background-color: var(--background-dark);
+            color: var(--text-main);
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color var(--transition-speed);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card fade-in">
+            <h1 class="login-title">BioPlatform</h1>
+
+            <!-- Toggle Buttons -->
+            <div style="display: flex; justify-content: center; margin-bottom: 2rem; gap: 1rem;">
+                <button id="showLogin" class="btn-toggle active"
+                    style="background:none; border:none; color:var(--text-main); cursor:pointer; font-weight:600; padding-bottom:0.25rem; border-bottom: 2px solid var(--primary-color);">Login</button>
+                <button id="showSignup" class="btn-toggle"
+                    style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding-bottom:0.25rem; border-bottom: 2px solid transparent;">Sign
+                    Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="email" class="form-input" placeholder="scientist@research.org" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <div id="loginErrorMsg" style="color: #ef4444; margin-bottom: 1rem; font-size: 0.9rem; display: none;">
+                </div>
+                <button type="submit" class="btn-primary">Sign In</button>
+            </form>
+
+            <!-- Signup Form (Hidden by default) -->
+            <form id="signupForm" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="signupName" class="form-input" placeholder="Dr. Jane Doe" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="signupEmail" class="form-input" placeholder="scientist@research.org"
+                        required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="signupPassword" class="form-input" placeholder="••••••••" required>
+                </div>
+                <div id="signupErrorMsg" style="color: #ef4444; margin-bottom: 1rem; font-size: 0.9rem; display: none;">
+                </div>
+                <div id="signupSuccessMsg"
+                    style="color: #4ade80; margin-bottom: 1rem; font-size: 0.9rem; display: none;">Account created!
+                    Redirecting...</div>
+                <button type="submit" class="btn-primary">Create Account</button>
+            </form>
+            <script>
+                const API_URL = 'http://127.0.0.1:8000/api/auth';
+
+                const loginForm = document.getElementById('loginForm');
+                const signupForm = document.getElementById('signupForm');
+                const showLoginBtn = document.getElementById('showLogin');
+                const showSignupBtn = document.getElementById('showSignup');
+
+                // Toggle Logic
+                showLoginBtn.addEventListener('click', () => {
+                    loginForm.style.display = 'block';
+                    signupForm.style.display = 'none';
+                    showLoginBtn.style.borderBottomColor = 'var(--primary-color)';
+                    showLoginBtn.style.color = 'var(--text-main)';
+                    showSignupBtn.style.borderBottomColor = 'transparent';
+                    showSignupBtn.style.color = 'var(--text-muted)';
+                });
+
+                showSignupBtn.addEventListener('click', () => {
+                    loginForm.style.display = 'none';
+                    signupForm.style.display = 'block';
+                    showSignupBtn.style.borderBottomColor = 'var(--primary-color)';
+                    showSignupBtn.style.color = 'var(--text-main)';
+                    showLoginBtn.style.borderBottomColor = 'transparent';
+                    showLoginBtn.style.color = 'var(--text-muted)';
+                });
+
+                // Login Logic
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    const errorMsg = document.getElementById('loginErrorMsg');
+                    errorMsg.style.display = 'none';
+
+                    try {
+                        const res = await fetch(`${API_URL}/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, password })
+                        });
+
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.detail || 'Authentication failed');
+
+                        localStorage.setItem('token', data.access_token);
+                        localStorage.setItem('user_id', data.user_id);
+                        localStorage.setItem('role', data.role);
+
+                        window.location.href = data.role === 'admin' ? 'admin_dashboard.html' : 'dashboard.html';
+                    } catch (err) {
+                        errorMsg.textContent = err.message;
+                        errorMsg.style.display = 'block';
+                    }
+                });
+
+                // Signup Logic
+                signupForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const full_name = document.getElementById('signupName').value;
+                    const email = document.getElementById('signupEmail').value;
+                    const password = document.getElementById('signupPassword').value;
+                    const errorMsg = document.getElementById('signupErrorMsg');
+                    const successMsg = document.getElementById('signupSuccessMsg');
+
+                    errorMsg.style.display = 'none';
+                    successMsg.style.display = 'none';
+
+                    try {
+                        const res = await fetch(`${API_URL}/register`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, password, full_name })
+                        });
+
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.detail || 'Registration failed');
+
+                        // Auto login after signup
+                        const loginRes = await fetch(`${API_URL}/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, password })
+                        });
+
+                        const loginData = await loginRes.json();
+
+                        if (loginRes.ok) {
+                            successMsg.style.display = 'block';
+                            localStorage.setItem('token', loginData.access_token);
+                            setTimeout(() => {
+                                window.location.href = 'dashboard.html';
+                            }, 1000);
+                        } else {
+                            // If auto-login fails, switch to login view
+                            alert("Account created! Please log in.");
+                            showLoginBtn.click();
+                        }
+
+                    } catch (err) {
+                        errorMsg.textContent = err.message;
+                        errorMsg.style.display = 'block';
+                    }
+                });
+            </script>
+        </div>
+    </div>
+</body>
+
+</html>

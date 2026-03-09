@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.env
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+backend/venv/
+backend/.venv/
+venv/
+.venv/
+backend/app/ai_models/
+temp_uploads/
+react-frontend/
+react-frontend-deleted/

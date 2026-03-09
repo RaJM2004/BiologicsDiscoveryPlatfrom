@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Biologics Platform</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div style="width: 24px; height: 24px; background: #0ea5e9; border-radius: 4px;"></div>
+                Admin Panel
+            </div>
+            <ul class="nav-links">
+                <li class="nav-item">
+                    <a href="landing.html">
+                        <span>🏠</span> Home
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="active">
+                        <span>📊</span> Dashboard
+                    </a>
+                </li>
+
+                <li class="nav-item" style="margin-top: auto;">
+                    <a href="#" onclick="logout()">
+                        <span>🚪</span> Logout
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <h1 class="page-title">System Overview</h1>
+                <div class="user-profile">
+                    <span id="adminName">Admin</span>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid">
+                <div class="card glass-card">
+                    <div class="card-title">Total Users</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);" id="totalUsers">-</div>
+                </div>
+                <div class="card glass-card">
+                    <div class="card-title">Total Activities</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="totalActivities">-</div>
+                </div>
+                <div class="card glass-card">
+                    <div class="card-title">Active Users</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--warning);" id="activeUsers">-</div>
+                </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 2fr 1fr;">
+                <!-- User Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">User Management</div>
+                        <button onclick="openModal()"
+                            style="background:var(--primary-color); color:white; border:none; padding:0.25rem 0.75rem; border-radius:4px; cursor:pointer; font-size:0.8rem;">+
+                            Add User</button>
+                    </div>
+                    <table id="userTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">User Activity</div>
+                        <span style="font-size: 0.8rem; color: #aaa;" id="activityUserLabel">Select a user</span>
+                    </div>
+                    <div id="activityLog" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color: #666; text-align: center; padding: 2rem;">Click "View Activity" on a user to
+                            see logs.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+
+        // Auth Guard
+        const token = localStorage.getItem('token');
+        const role = localStorage.getItem('role');
+
+        if (!token || role !== 'admin') {
+            window.location.href = 'login.html';
+        }
+
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_URL}/admin/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` } // Not actually checked by my simple middleware yet, but good practice
+                });
+                const data = await res.json();
+                document.getElementById('totalUsers').textContent = data.total_users;
+                document.getElementById('totalActivities').textContent = data.total_activities;
+                document.getElementById('activeUsers').textContent = data.active_users;
+            } catch (e) {
+                console.error("Error fetching stats", e);
+            }
+        }
+
+        async function fetchUsers() {
+            try {
+                const res = await fetch(`${API_URL}/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const users = await res.json();
+                const tbody = document.querySelector('#userTable tbody');
+                tbody.innerHTML = '';
+
+                users.forEach(user => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${user.email}</td>
+                        <td>${user.full_name || '-'}</td>
+                        <td>${user.is_superuser ? '<span style="color:var(--primary-color)">Admin</span>' : 'User'}</td>
+                        <td>${user.is_active ? 'Active' : 'Inactive'}</td>
+                        <td>
+                            <button onclick="viewActivity('${user.id}', '${user.email}')" style="background:none; border:none; color:var(--primary-color); cursor:pointer; text-decoration:underline;">View Activity</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                // Add User Modal Logic
+                const modalHtml = `
+                    <div id="userModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+                        <div class="card" style="width:400px; padding:2rem;">
+                            <h3 class="card-title" style="margin-bottom:1rem;">Add New User</h3>
+                            <form id="addUserForm">
+                                <div style="margin-bottom:1rem;">
+                                    <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem;">Email</label>
+                                    <input type="email" id="newEmail" style="width:100%; padding:0.5rem; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px;" required>
+                                </div>
+                                <div style="margin-bottom:1rem;">
+                                    <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem;">Full Name</label>
+                                    <input type="text" id="newFullName" style="width:100%; padding:0.5rem; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px;">
+                                </div>
+                                <div style="margin-bottom:1rem;">
+                                    <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem;">Password</label>
+                                    <input type="password" id="newPassword" style="width:100%; padding:0.5rem; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px;" required>
+                                </div>
+                                <div style="margin-bottom:1.5rem;">
+                                    <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem;">
+                                        <input type="checkbox" id="newIsAdmin"> Admin User
+                                    </label>
+                                </div>
+                                <div style="display:flex; gap:1rem;">
+                                    <button type="submit" style="flex:1; background:var(--primary-color); color:white; border:none; padding:0.5rem; border-radius:4px; cursor:pointer;">Create</button>
+                                    <button type="button" onclick="closeModal()" style="flex:1; background:transparent; border:1px solid #334155; color:white; padding:0.5rem; border-radius:4px; cursor:pointer;">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+                document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('newEmail').value;
+                    const password = document.getElementById('newPassword').value;
+                    const fullName = document.getElementById('newFullName').value;
+                    const isSuperuser = document.getElementById('newIsAdmin').checked;
+
+                    try {
+                        const res = await fetch(`${API_URL}/auth/register`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ email, password, full_name: fullName, is_superuser: isSuperuser })
+                        });
+
+                        if (!res.ok) {
+                            const data = await res.json();
+                            throw new Error(data.detail || 'Failed to create user');
+                        }
+
+                        alert('User created successfully');
+                        closeModal();
+                        fetchUsers(); // Refresh list
+                    } catch (err) {
+                        alert(err.message);
+                    }
+                });
+            } catch (e) {
+                console.error("Error fetching users", e);
+            }
+        }
+
+        function openModal() {
+            document.getElementById('userModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        async function viewActivity(userId, email) {
+            console.log("Viewing activity for ID:", userId, "Email:", email);
+            if (!userId || userId === 'undefined') {
+                alert("Error: Invalid User ID. Please refresh the page.");
+                return;
+            }
+            document.getElementById('activityUserLabel').textContent = `Logs for: ${email}`;
+            const container = document.getElementById('activityLog');
+            container.innerHTML = '<p>Loading...</p>';
+
+            try {
+                const res = await fetch(`${API_URL}/admin/users/${userId}/activity`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error("Failed to fetch activity");
+                const activities = await res.json();
+
+                if (activities.length === 0) {
+                    container.innerHTML = '<p style="padding:1rem; color:#888;">No activity recorded.</p>';
+                    return;
+                }
+
+                let html = '<ul style="list-style:none;">';
+                activities.forEach(log => {
+                    const time = new Date(log.timestamp).toLocaleString();
+                    html += `
+                        <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee;">
+                            <div style="font-weight:600; font-size:0.9rem;">${log.action}</div>
+                            <div style="font-size:0.8rem; color:#666;">${time}</div>
+                            <div style="font-family:monospace; font-size:0.8rem; margin-top:0.25rem; color:#444;">${JSON.stringify(log.details)}</div>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<p style="color:red;">Error loading logs.</p>';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('role');
+            window.location.href = 'login.html';
+        }
+
+        // Init
+        document.getElementById('adminName').textContent = 'Admin'; // Could fetch from profile
+        fetchStats();
+        fetchUsers();
+    </script>
+</body>
+
+</html>

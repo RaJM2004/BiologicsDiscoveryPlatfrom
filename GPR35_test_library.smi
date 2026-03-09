@@ -1,0 +1,12 @@
+# GPR35 Test Library (SMILES)
+# Contains known ligands (Zaprinast, Kynurenic acid) and random decoys
+O=C1NC=NC2=C1C(=O)N(C(=O)N2C)C	Caffeine_Decoy
+CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)CN3CCN(CC3)C)NC4=NC=CC(=N4)C5=CN=CC=C5	Imatinib_Decoy
+O=C1C=C(C(=O)O)NC2=C1C=CC=C2	Kynurenic_Acid_Agonist
+O=C1c2ccccc2-c3nc(ccc13)c4ccccc4	Pamoic_Acid_Agonist
+CCOc1cc(=O)n2c(c1)cccc2	Zaprinast_Agonist
+O=C(Cc1ccc(O)c(O)c1)C(F)(F)F	Lodoxamide_Tromethamine_Agonist
+C1=CC=CC=C1	Benzene_Simple_Decoy
+CC(=O)Oc1ccccc1C(=O)O	Aspirin_Decoy
+CN1C2CCC1C(C(C2)OC(=O)c3ccccc3)C(=O)OC	Cocaine_Decoy
+CC12CCC3C(C1CCC2O)CCC4=CC(=O)CCC34C	Testosterone_Decoy

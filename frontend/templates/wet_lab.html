@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wet-Lab Validation - Biologics Discovery Platform</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .experiment-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .experiment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+            border-color: var(--primary-color);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-planned {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .status-running {
+            background: rgba(234, 179, 8, 0.15);
+            color: #facc15;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+            animation: pulse-border 2s infinite;
+        }
+
+        .status-completed {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        @keyframes pulse-border {
+            0% {
+                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(234, 179, 8, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+            }
+        }
+
+        .vial-icon {
+            font-size: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.75rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        input,
+        select,
+        textarea {
+            background: rgba(15, 23, 42, 0.8) !important;
+            border: 1px solid rgba(148, 163, 184, 0.2) !important;
+            color: white !important;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span>🧬</span> BioPlatform
+            </div>
+            <ul class="nav-links">
+                <ul class="nav-links">
+                    <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
+                    <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                    <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                    <li class="nav-item"><a href="wet_lab.html" class="active">Wet-Lab Validation</a></li>
+                    <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+                </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <h1 class="page-title">Wet-Lab Validation</h1>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="glass-card"
+                        style="padding: 0.5rem 1rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>📠</span> Connect LIMS
+                    </button>
+                    <button class="glass-card"
+                        style="padding: 0.5rem 1rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>🤖</span> Robot Status: Online
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 2fr; gap: 2rem;">
+
+                <!-- Experiment Form -->
+                <div class="glass-card tech-border fade-in">
+                    <div class="card-header"
+                        style="background: linear-gradient(90deg, rgba(14,165,233,0.1) 0%, transparent 100%); border-bottom: 1px solid rgba(255,255,255,0.05); padding: 1.5rem;">
+                        <h3 class="card-title" style="color: var(--primary-color);">📝 New Protocol</h3>
+                    </div>
+                    <div class="card-body" style="padding: 1.5rem;">
+                        <div style="display: grid; gap: 1.5rem;">
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--text-muted);">Experiment
+                                    Name / ID</label>
+                                <input type="text" id="exp-name" placeholder="Ex: AM-2024-Binding-001"
+                                    style="width: 100%; padding: 0.75rem; border-radius: 8px;">
+                            </div>
+
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--text-muted);">Assay
+                                    Type</label>
+                                <select id="exp-type" style="width: 100%; padding: 0.75rem; border-radius: 8px;">
+                                    <option>Binding Affinity (SPR)</option>
+                                    <option>Cytotoxicity (MTT)</option>
+                                    <option>Thermostability (DSC)</option>
+                                    <option>PK/PD Profiling</option>
+                                    <option>Aggregation Study</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--text-muted);">Target
+                                    ID</label>
+                                <input type="text" id="exp-target" placeholder="Ex: TRG-8821"
+                                    style="width: 100%; padding: 0.75rem; border-radius: 8px;">
+                            </div>
+
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--text-muted);">Webhook
+                                    URL (Optional)</label>
+                                <input type="text" id="exp-webhook" placeholder="https://hook.opentrons.com/..."
+                                    style="width: 100%; padding: 0.75rem; border-radius: 8px;">
+                            </div>
+
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--text-muted);">Description
+                                    / Notes</label>
+                                <textarea id="exp-desc" rows="3" placeholder="Enter protocol details..."
+                                    style="width: 100%; padding: 0.75rem; border-radius: 8px; resize: none;"></textarea>
+                            </div>
+
+                            <button id="add-exp-btn"
+                                style="width: 100%; padding: 1rem; background: var(--gradient-primary); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: opacity 0.2s;">
+                                Initiate Protocol
+                            </button>
+                            <div id="exp-status" style="text-align: center; height: 1.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Experiments List -->
+                <div class="glass-card fade-in"
+                    style="display: flex; flex-direction: column; overflow: hidden; height: fit-content;">
+                    <div class="card-header"
+                        style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 class="card-title">🔬 Active Lab Bench</h3>
+                        <div style="font-size: 0.875rem; color: var(--text-muted);">Real-time Sync</div>
+                    </div>
+                    <div id="exp-list"
+                        style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-height: 600px; overflow-y: auto;">
+                        <!-- Loading State -->
+                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            Loading experiments...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('add-exp-btn').addEventListener('click', async () => {
+            const name = document.getElementById('exp-name').value;
+            const type = document.getElementById('exp-type').value;
+            const target = document.getElementById('exp-target').value;
+            const webhook = document.getElementById('exp-webhook').value;
+            const desc = document.getElementById('exp-desc').value;
+            const statusEl = document.getElementById('exp-status');
+            const btn = document.getElementById('add-exp-btn');
+
+            if (!name) {
+                statusEl.innerHTML = '<span style="color: #f43f5e;">⚠️ Name required</span>';
+                return;
+            }
+
+            // UI Feedback
+            btn.style.opacity = '0.7';
+            btn.innerHTML = 'Submitting...';
+            statusEl.innerHTML = '';
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/experiments/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        experiment_type: type,
+                        target_id: target || "TRG-DEFAULT",
+                        description: desc,
+                        parameters: {
+                            webhook_url: webhook // Send webhook if provided
+                        }
+                    })
+                });
+
+                if (res.ok) {
+                    statusEl.innerHTML = '<span style="color: #4ade80;">✅ Protocol Initiated</span>';
+                    document.getElementById('exp-name').value = '';
+                    document.getElementById('exp-desc').value = '';
+                    loadExp(); // Refresh list
+                } else {
+                    const err = await res.json();
+                    statusEl.innerHTML = `<span style="color: #f43f5e;">Error: ${err.detail || 'Failed'}</span>`;
+                }
+            } catch (e) {
+                console.error(e);
+                statusEl.innerHTML = '<span style="color: #f43f5e;">Connection Error</span>';
+            } finally {
+                btn.style.opacity = '1';
+                btn.innerHTML = 'Initiate Protocol';
+            }
+        });
+
+        async function loadExp() {
+            const container = document.getElementById('exp-list');
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/experiments/');
+                const exps = await res.json();
+
+                if (exps.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px;">
+                            <div style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;">🧪</div>
+                            <p style="color: var(--text-muted);">No experiments currently active.</p>
+                            <p style="font-size: 0.875rem; color: var(--text-muted);">Start a new protocol to see it here.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = exps.slice().reverse().map(e => {
+                    // Determine Status Style
+                    let statusClass = 'status-planned';
+                    let icon = '📋';
+                    if (e.status === 'Running') { statusClass = 'status-running'; icon = '⚙️'; }
+                    if (e.status === 'Completed') { statusClass = 'status-completed'; icon = '✅'; }
+                    if (e.status === 'Failed') { statusClass = 'status-danger'; icon = '❌'; }
+
+                    return `
+                        <div class="glass-card experiment-card" style="padding: 1.25rem; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div class="vial-icon">${icon}</div>
+                                <div>
+                                    <h4 style="margin-bottom: 0.25rem; font-weight: 600; color: white;">${e.name}</h4>
+                                    <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 1rem;">
+                                        <span>${e.experiment_type}</span>
+                                        <span style="color: rgba(255,255,255,0.2);">|</span>
+                                        <span>${e.target_id || 'No Target'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="${statusClass} status-badge">
+                                    ${e.status}
+                                </div>
+                                <div style="margin-top: 0.5rem; font-size: 0.75rem; color: rgba(255,255,255,0.3);">
+                                    ${new Date(e.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExp();
+
+            // Check URL Params for Auto-Fill
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('target_id')) {
+                document.getElementById('exp-target').value = urlParams.get('target_id');
+            }
+            if (urlParams.has('desc')) {
+                document.getElementById('exp-desc').value = urlParams.get('desc');
+            }
+
+            // Auto-Fill Name
+            const pad = (n) => n < 10 ? '0' + n : n;
+            const d = new Date();
+            const autoName = `EXP-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-AI-${pad(Math.floor(Math.random() * 100))}`;
+            if (!document.getElementById('exp-name').value) {
+                document.getElementById('exp-name').value = autoName;
+            }
+
+            // Auto-Submit if requested
+            if (urlParams.get('auto_init') === 'true') {
+                setTimeout(() => {
+                    document.getElementById('add-exp-btn').click();
+                }, 500); // Small delay for visual confirmation
+            }
+        });
+    </script>
+    <script src="../static/js/chatbot.js"></script>
+</body>
+
+</html>

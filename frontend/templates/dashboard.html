@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Biologics Discovery Platform</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'login.html';
+
+        // Robust Fetch Interceptor
+        const { fetch: originalFetch } = window;
+        window.fetch = async (...args) => {
+            let [resource, config] = args;
+            config = config || {};
+            const token = localStorage.getItem('token');
+
+            // Add auth header if token exists and URL targets API
+            if (token) {
+                config.headers = config.headers || {};
+                if (!config.headers['Authorization']) {
+                    config.headers['Authorization'] = 'Bearer ' + token;
+                }
+                if (!config.headers['Content-Type']) {
+                    config.headers['Content-Type'] = 'application/json';
+                }
+            }
+
+            const response = await originalFetch(resource, config);
+
+            // Handle global 401
+            if (response.status === 401) {
+                // If it's not the login page, redirect
+                if (!window.location.pathname.includes('login.html')) {
+                    // Optional: logout(); 
+                }
+            }
+            return response;
+        };
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span>🧬</span> BioPlatform
+            </div>
+            <ul class="nav-links">
+                <li class="nav-item"><a href="landing.html">Home</a></li>
+                <li class="nav-item"><a href="dashboard.html" class="active">Dashboard</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
+                <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+                <li class="nav-item" style="margin-top: auto;"><a href="#" onclick="logout()">Logout</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <h1 class="page-title">Research Dashboard</h1>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button onclick="window.location.href='landing.html'"
+                        style="background:none; border:none; color: white; cursor: pointer;">Home</button>
+                    <div id="api-status"
+                        style="padding: 0.25rem 0.75rem; border-radius: 999px; background: #334155; font-size: 0.875rem; color: #94a3b8;">
+                        Connecting...
+                    </div>
+                    <div class="user-profile">
+                        <span>Welcome, Scientist</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid with Holographic Effect -->
+            <div class="grid fade-in" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+                <!-- Card 1 -->
+                <div class="glass-card bio-border" style="position: relative; overflow: hidden;">
+                    <div style="position: absolute; right: -20px; top: -20px; opacity: 0.1; font-size: 5rem;">🧬</div>
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <h4
+                            style="color: var(--primary-color); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">
+                            Total Targets</h4>
+                        <div style="font-size: 2.5rem; font-weight: 700; color: white; text-shadow: 0 0 20px rgba(14, 165, 233, 0.5);"
+                            id="target-count">--</div>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass-card bio-border" style="position: relative; overflow: hidden;">
+                    <div style="position: absolute; right: -20px; top: -20px; opacity: 0.1; font-size: 5rem;">🤖</div>
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <h4
+                            style="color: #facc15; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">
+                            Active AI Jobs</h4>
+                        <div style="font-size: 2.5rem; font-weight: 700; color: white; text-shadow: 0 0 20px rgba(250, 204, 21, 0.5);"
+                            id="screening-count">--</div>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass-card bio-border" style="position: relative; overflow: hidden;">
+                    <div style="position: absolute; right: -20px; top: -20px; opacity: 0.1; font-size: 5rem;">🧪</div>
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <h4
+                            style="color: #4ade80; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">
+                            Experiments</h4>
+                        <div style="font-size: 2.5rem; font-weight: 700; color: white; text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);"
+                            id="experiment-count">--</div>
+                    </div>
+                </div>
+
+                <!-- Card 4: GPU Heartbeat -->
+                <div class="glass-card bio-border" style="position: relative; overflow: hidden;">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <h4
+                            style="color: #f43f5e; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">
+                            Cluster Load</h4>
+                        <div style="display: flex; align-items: baseline; justify-content: center; gap: 0.5rem;">
+                            <span
+                                style="font-size: 2.5rem; font-weight: 700; color: white; text-shadow: 0 0 20px rgba(244, 63, 94, 0.5);"
+                                id="gpu-load">0%</span>
+                            <span style="font-size: 0.875rem; color: var(--text-muted);">GPU-01</span>
+                        </div>
+                        <!-- EKG Line Animation -->
+                        <div
+                            style="height: 2px; width: 100%; background: #334155; margin-top: 1rem; position: relative; overflow: hidden;">
+                            <div
+                                style="position: absolute; width: 30%; height: 100%; background: linear-gradient(90deg, transparent, #f43f5e, transparent); animation: ekg 1.5s ease-in-out infinite;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Layout -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+
+                <!-- Chart Section -->
+                <div class="glass-card tech-corner" style="padding: 1.5rem; height: 100%;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
+                        <h3 class="card-title">Real-Time Throughput (Mols/Sec)</h3>
+                        <span
+                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(14, 165, 233, 0.1); color: var(--primary-color); border: 1px solid var(--primary-color); border-radius: 4px;">LIVE
+                            STREAM</span>
+                    </div>
+                    <div id="throughput-chart" style="width: 100%; height: 350px;"></div>
+                </div>
+
+                <!-- Feed Section -->
+                <div class="glass-card tech-corner" style="padding: 1.5rem; height: 100%;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
+                        <h3 class="card-title">System Logs</h3>
+                        <div
+                            style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 10px #4ade80; animation: pulse 2s infinite;">
+                        </div>
+                    </div>
+                    <div id="activity-feed" style="max-height: 350px; overflow-y: auto; padding-right: 0.5rem;">
+                        <!-- JS injected content -->
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                @keyframes ekg {
+                    0% {
+                        left: -100%;
+                    }
+
+                    100% {
+                        left: 100%;
+                    }
+                }
+
+                .bio-border {
+                    border-left: 3px solid var(--primary-color);
+                }
+
+                .tech-corner {
+                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                }
+            </style>
+        </main>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="../static/js/main.js"></script>
+    <script src="../static/js/dashboard_charts.js"></script>
+    <script src="../static/js/chatbot.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <viewport content="width=device-width, initial-scale=1.0">
+        <title>Target Explorer - Biologics Discovery Platform</title>
+        <link rel="stylesheet" href="../static/css/style.css">
+        <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+        <style>
+            .mol-container {
+                width: 100%;
+                height: 400px;
+                position: relative;
+                background-color: #0f172a;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                margin-top: 1rem;
+            }
+        </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="brand"><span>🧬</span> BioPlatform</div>
+            <ul class="nav-links">
+                <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="nav-item"><a href="target_explorer.html" class="active">Target Explorer</a></li>
+                <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <!-- Futuristic Hero -->
+            <div class="glass-card"
+                style="padding: 3rem; text-align: center; margin-bottom: 3rem; background: radial-gradient(circle at center, rgba(14, 165, 233, 0.15) 0%, transparent 70%); border: 1px solid rgba(14, 165, 233, 0.3);">
+                <div style="margin-bottom: 1rem; font-size: 3rem;">🧬</div>
+                <h1 style="font-size: 3rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;">Target
+                    Discovery</h1>
+                <p style="color: var(--text-muted); font-size: 1.2rem; max-width: 600px; margin: 0 auto;">
+                    Access global PDB structures and AlphaFold predictions via the <span
+                        style="color: var(--primary-color);">Neural-Bio Interface</span>.
+                </p>
+            </div>
+
+            <!-- Sequencing Terminal -->
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div class="glass-card"
+                    style="padding: 2px; background: linear-gradient(90deg, #0ea5e9, #10b981); border-radius: 14px;">
+                    <div
+                        style="background: #020617; border-radius: 12px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+                        <span
+                            style="color: #10b981; font-family: monospace; font-size: 1.2rem;">root@bio-cluster:~$</span>
+                        <input type="text" id="target-search-input" placeholder="SCAN_TARGET --gene_symbol "
+                            style="flex: 1; background: transparent; border: none; color: white; font-family: 'Courier New', monospace; font-size: 1.2rem; outline: none; caret-color: #10b981;">
+                        <button id="target-search-btn"
+                            style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; padding: 0.5rem 1.5rem; font-family: monospace; cursor: pointer; border-radius: 4px; transition: all 0.2s;">
+                            [EXECUTE]
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="target-results" class="results-placeholder" style="margin-top: 3rem;">
+                <div style="text-align: center; opacity: 0.5;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/DNA_Orbit_Animated.gif" width="100"
+                        style="filter: grayscale(100%) brightness(50%) hue-rotate(90deg);">
+                    <p style="margin-top: 1rem; font-family: monospace; color: var(--text-muted);">AWAITING SEQUENCE
+                        INPUT...</p>
+                </div>
+            </div>
+
+            <!-- 3D Viewer (Hidden) -->
+            <div id="viewer-section" style="display: none; margin-top: 3rem;" class="fade-in">
+                <div class="glass-card tech-border" style="padding: 0;">
+                    <div
+                        style="background: rgba(0,0,0,0.3); padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; font-family: monospace; color: var(--primary-color);">>>>
+                            MOLECULAR_VISUALIZATION_MODULE</h3>
+                        <span
+                            style="font-size: 0.8rem; background: #0ea5e9; color: black; padding: 0.25rem 0.5rem; font-weight: bold;">INTERACTIVE</span>
+                    </div>
+                    <div id="mol-viewer" class="mol-container"
+                        style="border: none; margin: 0; height: 500px; background: #000;"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="../static/js/main.js"></script>
+    <script src="../static/js/target_explorer.js"></script>
+    <script src="../static/js/chatbot.js"></script>
+</body>
+
+</html>
