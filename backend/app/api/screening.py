@@ -8,8 +8,12 @@ import pickle
 import numpy as np
 from datetime import datetime
 from app.utils.cheminformatics import calculate_molecular_properties
-from rdkit import Chem
+from app.utils.file_parsers import parse_molecules
+from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem, MACCSkeys, Descriptors
+
+# Disable RDKit C++ backend warnings (hides the MorganGenerator terminal spam)
+RDLogger.DisableLog('rdApp.*')
 
 router = APIRouter()
 
@@ -28,29 +32,28 @@ from app.utils.websockets import manager
 
 async def run_ai_screening_task(job_id: str, file_path: str):
     """
-    Parses the uploaded file (SMILES/CSV) and runs inference on every molecule.
+    Parses the uploaded file (multi-format) and runs inference on every molecule.
+    Supported formats: .smi, .sdf, .mol2, .csv, .mzml, .mzxml
     """
     hits = []
     
-    # safe file reading
+    # Parse molecules using the multi-format parser
     try:
-        with open(file_path, "r") as f:
-            lines = f.readlines()
+        parsed_molecules = parse_molecules(file_path)
     except Exception as e:
-        await manager.broadcast(f"❌ Error reading file: {e}", job_id)
+        await manager.broadcast(f"❌ Error parsing file: {e}", job_id)
         return
 
-    await manager.broadcast(f"🧪 [Job {job_id}] Screening {len(lines)} molecules...", job_id)
+    if not parsed_molecules:
+        await manager.broadcast(f"❌ No valid molecules found in uploaded file.", job_id)
+        return
+
+    await manager.broadcast(f"🧪 [Job {job_id}] Screening {len(parsed_molecules)} molecules...", job_id)
 
     processed_count = 0
-    for line in lines:
-        line = line.strip()
-        if not line: continue
-        
-        # Simple parser: Assume SMILES is the first token, ID is the second (optional)
-        parts = line.split()
-        smiles = parts[0]
-        mol_id = parts[1] if len(parts) > 1 else f"Mol-{processed_count+1}"
+    for mol_entry in parsed_molecules:
+        smiles = mol_entry["smiles"]
+        mol_id = mol_entry["mol_id"]
         
         # 1. Calculate Properties (RDKit)
         props = calculate_molecular_properties(smiles)
@@ -109,7 +112,7 @@ async def run_ai_screening_task(job_id: str, file_path: str):
         processed_count += 1
         
         if processed_count % 5 == 0:
-            await manager.broadcast(f"Processing... {processed_count}/{len(lines)}", job_id)
+            await manager.broadcast(f"Processing... {processed_count}/{len(parsed_molecules)}", job_id)
             await asyncio.sleep(0.01)
     
     # Sort by affinity (High to Low for pIC50)
@@ -142,10 +145,11 @@ async def run_screening(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...)
 ):
-    # 1. Save file to disk
+    # 1. Save file to disk (preserve original extension for format detection)
     temp_dir = "temp_uploads"
     os.makedirs(temp_dir, exist_ok=True)
-    file_path = os.path.join(temp_dir, f"{library_id}_{int(datetime.now().timestamp())}.smi")
+    original_ext = os.path.splitext(file.filename)[1].lower() if file.filename else ".smi"
+    file_path = os.path.join(temp_dir, f"{library_id}_{int(datetime.now().timestamp())}{original_ext}")
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)

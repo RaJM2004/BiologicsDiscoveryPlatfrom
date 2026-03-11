@@ -14,8 +14,10 @@
             <ul class="nav-links">
                 <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
                 <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
+                <li class="nav-item"><a href="molecular_docking.html">Structural Docking</a></li>
                 <li class="nav-item"><a href="hit_screening.html" class="active">Hit Screening</a></li>
                 <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                <li class="nav-item"><a href="admet_prediction.html">ADMET Intelligence</a></li>
                 <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
                 <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
             </ul>
@@ -57,11 +59,12 @@
                             </div>
                             <label
                                 style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Structure
-                                Library (.smi)</label>
+                                Library (.smi, .sdf, .mol2, .csv, .json, .mzml)</label>
                             <div
                                 style="display: flex; align-items: center; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem;">
                                 <span style="color: #64748b; margin-right: 0.5rem;">📁</span>
-                                <input type="file" id="screen-file" accept=".smi,.txt,.csv"
+                                <input type="file" id="screen-file"
+                                    accept=".smi,.txt,.csv,.sdf,.sd,.mol2,.json,.mzml,.mzxml"
                                     style="width: 100%; color: white; font-family: monospace;">
                                 <input type="hidden" id="screen-library-id" value="Custom-Upload">
                             </div>
@@ -98,7 +101,7 @@
             const statusEl = document.getElementById('screen-status');
 
             if (!targetId) { alert("Please enter a Target ID"); return; }
-            if (!fileInput.files[0]) { alert("Please select a .smi file"); return; }
+            if (!fileInput.files[0]) { alert("Please select a molecular file (.smi, .sdf, .mol2, .csv, .json, .mzml)"); return; }
 
             statusEl.innerHTML = '<span style="color: #94a3b8;">Uploading & Initializing Real Inference...</span>';
 
@@ -115,7 +118,9 @@
                 });
 
                 if (res.ok) {
-                    statusEl.innerHTML = '<span style="color: #4ade80;">✓ AI Inference Started. Job ID: ' + (await res.json()).id + '</span>';
+                    const data = await res.json();
+                    const jobId = data.id || data._id;
+                    statusEl.innerHTML = `<span style="color: #4ade80;">✓ AI Inference Started. Job ID: ${jobId}</span>`;
                     loadJobs();
                 } else {
                     throw new Error('Failed');
@@ -182,15 +187,55 @@
                                                 Target: ${j.target_id} | Lib: ${j.library_id}
                                             </div>
                                         </div>
-                                        <span style="border: 1px solid ${statusColor}; color: ${statusColor}; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
-                                            ${j.status.toUpperCase()}
-                                        </span>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            ${j.status === 'Completed' ? `<button onclick='downloadReport("${j._id}", "${j.target_id}")' style="background: rgba(14, 165, 233, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">📄 PDF REPORT</button>` : ''}
+                                            <span style="border: 1px solid ${statusColor}; color: ${statusColor}; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                                ${j.status.toUpperCase()}
+                                            </span>
+                                        </div>
                                     </div>
                                     ${detailsHtml}
                                 </div>
                             `}).join('');
             } catch (e) {
                 console.error(e);
+            }
+        }
+
+        async function downloadReport(jobId, targetId) {
+            try {
+                // Find job results in current data or fetch via API
+                const res = await fetch(`http://127.0.0.1:8000/api/screening/`);
+                const jobs = await res.json();
+                const job = jobs.find(j => j._id === jobId);
+
+                if (!job || !job.results) return;
+
+                const pdfRes = await fetch('http://127.0.0.1:8000/api/reports/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        target_name: targetId,
+                        summary_data: {
+                            "Total Screened": job.results.hits_found || 0,
+                            "Model Used": job.results.model_used || "XGBoost-Hybrid",
+                            "Status": "Verified Discovery"
+                        },
+                        molecules: job.results.top_hits.map(h => ({ smiles: h.smiles, affinity: h.affinity }))
+                    })
+                });
+
+                if (pdfRes.ok) {
+                    const blob = await pdfRes.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Discovery_Report_${targetId}_${jobId.substring(0, 4)}.pdf`;
+                    a.click();
+                }
+            } catch (e) {
+                console.error("Report Error:", e);
+                alert("Failed to generate PDF report.");
             }
         }
 

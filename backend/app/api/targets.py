@@ -115,17 +115,46 @@ async def import_pdb_target(pdb_id: str):
 async def discover_target(uniprot_id: str):
     """
     Implements the full Target Discovery Workflow:
-    1. Fetch sequence from UniProt
-    2. Retrieve 3D structure from PDB
-    3. If unavailable -> fetch AlphaFold prediction
-    4. Fetch known binders from ChEMBL
+    1. Auto-detect if input is a PDB ID (4-char alphanumeric) → import from PDB
+    2. Otherwise, treat as gene name / UniProt ID:
+       a. Fetch sequence from UniProt
+       b. Retrieve 3D structure from PDB
+       c. If unavailable -> fetch AlphaFold prediction
+       d. Fetch known binders from ChEMBL
     """
+    import re
     safe_id = uniprot_id.strip().upper()
     
+    # --- Auto-detect PDB ID (exactly 4 alphanumeric characters, starts with a digit) ---
+    if re.match(r'^[0-9][A-Z0-9]{3}$', safe_id):
+        # Route to PDB import logic
+        metadata = fetch_pdb_metadata(safe_id)
+        if not metadata:
+            raise HTTPException(status_code=404, detail=f"PDB ID '{safe_id}' not found or PDB API error.")
+        if isinstance(metadata, dict) and metadata.get("error") == "NotFound":
+            raise HTTPException(status_code=404, detail=f"PDB ID '{safe_id}' not found in RCSB PDB.")
+        
+        existing = await Target.find_one(Target.name == metadata["title"])
+        if existing:
+            return existing
+        
+        new_target = Target(
+            name=metadata["title"],
+            type="Protein Structure",
+            sequence=f"PDB:{metadata['pdb_id']}",
+            description=f"Imported from PDB: {metadata['pdb_id']} | Method: {metadata['experiment_method']}",
+            properties=metadata,
+            pdb_ids=[metadata['pdb_id']],
+            status="Discovered"
+        )
+        await new_target.insert()
+        return new_target
+    
+    # --- Otherwise: UniProt / Gene Name discovery ---
     # 1. Fetch UniProt Core Data
     uniprot_data = await fetch_uniprot_data(safe_id)
     if not uniprot_data:
-        raise HTTPException(status_code=404, detail=f"Target {safe_id} not found in UniProt.")
+        raise HTTPException(status_code=404, detail=f"Target '{safe_id}' not found. Try a gene name (e.g. GPR35), UniProt ID (e.g. Q9Y5Y4), or PDB ID (e.g. 6D9H).")
         
     pdb_ids = uniprot_data.get("pdb_ids", [])
     

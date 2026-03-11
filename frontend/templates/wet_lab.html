@@ -100,14 +100,15 @@
                 <span>🧬</span> BioPlatform
             </div>
             <ul class="nav-links">
-                <ul class="nav-links">
-                    <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
-                    <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
-                    <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
-                    <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
-                    <li class="nav-item"><a href="wet_lab.html" class="active">Wet-Lab Validation</a></li>
-                    <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
-                </ul>
+                <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
+                <li class="nav-item"><a href="molecular_docking.html">Structural Docking</a></li>
+                <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                <li class="nav-item"><a href="admet_prediction.html">ADMET Intelligence</a></li>
+                <li class="nav-item"><a href="wet_lab.html" class="active">Wet-Lab Validation</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+            </ul>
         </aside>
 
         <!-- Main Content -->
@@ -191,18 +192,40 @@
                 </div>
 
                 <!-- Active Experiments List -->
-                <div class="glass-card fade-in"
-                    style="display: flex; flex-direction: column; overflow: hidden; height: fit-content;">
-                    <div class="card-header"
-                        style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
-                        <h3 class="card-title">🔬 Active Lab Bench</h3>
-                        <div style="font-size: 0.875rem; color: var(--text-muted);">Real-time Sync</div>
+                <div style="display: flex; flex-direction: column; gap: 2rem;">
+                    <div class="glass-card fade-in"
+                        style="display: flex; flex-direction: column; overflow: hidden; height: fit-content;">
+                        <div class="card-header"
+                            style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                            <h3 class="card-title">🔬 Active Lab Bench</h3>
+                            <div style="font-size: 0.875rem; color: var(--text-muted);">Real-time Sync</div>
+                        </div>
+                        <div id="exp-list"
+                            style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-height: 400px; overflow-y: auto;">
+                            <!-- Loading State -->
+                            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                Loading experiments...
+                            </div>
+                        </div>
                     </div>
-                    <div id="exp-list"
-                        style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-height: 600px; overflow-y: auto;">
-                        <!-- Loading State -->
-                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                            Loading experiments...
+
+                    <!-- OT-2 Robotic Automation Section -->
+                    <div class="glass-card tech-border fade-in">
+                        <div class="card-header" style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <h3 class="card-title" style="color: #a855f7;">🤖 Opentrons OT-2 Automation</h3>
+                        </div>
+                        <div class="card-body" style="padding: 1.5rem;">
+                            <p class="text-xs text-slate-400 mb-4 font-mono">GENERATE PYTHON PROTOCOLS FOR LIQUID HANDLING ROBOTS</p>
+                            <div class="space-y-4">
+                                <button onclick="generateRobotProtocol()" id="robot-gen-btn"
+                                    style="width: 100%; padding: 0.75rem; background: rgba(168, 85, 247, 0.1); border: 1px solid #a855f7; border-radius: 8px; color: #a855f7; font-weight: 600; cursor: pointer;">
+                                    Generate OT-2 Validation Script
+                                </button>
+                                <div id="robot-output" style="display: none; margin-top: 1rem;">
+                                    <pre id="protocol-code" style="background: #020617; padding: 1rem; border-radius: 8px; font-size: 0.75rem; color: #4ade80; border: 1px solid #334155; max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></pre>
+                                    <button onclick="downloadProtocol()" style="width: 100%; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">Download .py file</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -316,6 +339,46 @@
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        async function generateRobotProtocol() {
+            const trg = document.getElementById('exp-target').value || 'TRG-GENERIC';
+            const btn = document.getElementById('robot-gen-btn');
+            const HOST = 'http://127.0.0.1:8000';
+            
+            btn.innerHTML = 'Generating...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${HOST}/api/robot/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ligands: ["C1=CC=CC=C1", "CC(=O)O"],
+                        target_id: trg
+                    })
+                });
+                const data = await response.json();
+                
+                document.getElementById('robot-output').style.display = 'block';
+                document.getElementById('protocol-code').innerText = data.script;
+                window.lastProtocol = data;
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.innerHTML = 'Generate OT-2 Validation Script';
+                btn.disabled = false;
+            }
+        }
+
+        function downloadProtocol() {
+            if (!window.lastProtocol) return;
+            const blob = new Blob([window.lastProtocol.script], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = window.lastProtocol.filename;
+            a.click();
         }
 
         document.addEventListener('DOMContentLoaded', () => {

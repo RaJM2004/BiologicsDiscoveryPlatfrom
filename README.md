@@ -6,10 +6,10 @@ An advanced, production-grade AI drug discovery platform designed for pharmaceut
 
 ## 🚀 Key Features
 
-*   **Target Discovery (Neural-Bio Interface):** Instantly resolve gene symbols (e.g., EGFR, TP53) to UniProt primary accessions. Automatically fetches genomic sequences, fetches verified 3D structures from **RCSB PDB**, and seamlessly falls back to **AlphaFold** `.cif` predictions when crystal structures are unavailable.
-*   **Virtual Hit Screening:** Replaces synthetic assumptions with real scientific models. Converts `.smi` libraries into 2400+ dimensional mathematical features (2048-bit ECFP4 Morgan Fingerprints, 166 MACCS Keys, 200+ RDKit 2D Descriptors) to predict binding affinities (pIC50) using an optimized **XGBoost Regressor** trained on ChEMBL data.
+*   **Target Discovery (Neural-Bio Interface):** Instantly resolve gene symbols (e.g., EGFR, TP53) to UniProt primary accessions. Automatically fetches genomic sequences, verified 3D structures from **RCSB PDB**, and seamlessly falls back to **AlphaFold** `.cif` predictions when crystal structures are unavailable.
+*   **Virtual Hit Screening (Multi-Format):** Accepts diverse scientific data formats (`.smi`, `.sdf`, `.mol2`, `.csv`, `.json` BioAssay, `.mzml` LCMS) and screens them seamlessly. Converts compounds into 2400+ dimensional mathematical features to predict binding affinities (pIC50) using an optimized **XGBoost Regressor**.
 *   **Molecular Visualization:** Fully interactive embedded 3D molecule viewing (via `3Dmol.js`), rendering PDB structures and AlphaFold Confidence Arrays directly within the UI.
-*   *(Coming Soon)* **Lead Optimization:** Generative AI for bio-realistic structural mutations.
+*   **Lead Optimization:** Evolutionary Generative AI strategies (mutations like heteroatom swaps, additions) for bio-realistic SAR analysis.
 *   *(Coming Soon)* **Molecular Docking:** AutoDock Vina containerized execution.
 
 ---
@@ -73,7 +73,8 @@ sequenceDiagram
     participant UI as Platform Interface
     participant TD as Target Discovery
     participant Ext as Public DBs (UniProt/PDB)
-    participant VS as Virtual Screening (RDKit+XGBoost)
+    participant VS as Virtual Screening (Multi-Format)
+    participant Parser as File Parsers Utility
 
     Scientist->>UI: Enter Gene Symbol (e.g., "GPR35")
     UI->>TD: POST /api/targets/discover/GPR35
@@ -84,8 +85,12 @@ sequenceDiagram
     TD-->>UI: Target Profile Complete
     UI-->>Scientist: Render 3D Protein Structure
 
-    Scientist->>UI: Upload Library (e.g., library.smi)
+    Scientist->>UI: Upload Library (.sdf, .csv, .mzml, .json, etc)
     UI->>VS: POST /api/screening/run
+    VS->>Parser: parse_molecules(file_path)
+    Note right of Parser: Detects extension<br/>Extracts 3D/JSON/XML<br/>Resolves PubChem CIDs to SMILES
+    Parser-->>VS: Unified List[{smiles, mol_id}]
+    
     loop Feature Extraction
         VS->>VS: RDKit: Convert SMILES -> 2400+ Features
         VS->>VS: XGBoost: Predict Binding Affinity (pIC50)
@@ -93,6 +98,13 @@ sequenceDiagram
     VS-->>UI: Top N Candidates Sorted by Affinity
     UI-->>Scientist: Display Viable Hit Compounds
 ```
+
+### Supported Data Formats (Hit Screening)
+The `app/utils/file_parsers.py` utility normalizes various scientific data formats into a unified SMILES pipeline:
+- **`2D/1D Text`**: `.smi`, `.txt`, `.csv` (Auto-detects canonical smiles and activity columns)
+- **`3D Structures`**: `.sdf`, `.sd`, `.mol2` (Extracts structures using RDKit libraries)
+- **`BioAssay Data`**: `.json` (Parses PubChem concise JSON and flat arrays, performs batch API lookups for CID → SMILES resolution)
+- **`LCMS Data`**: `.mzml`, `.mzxml` (Lightweight MS parsing, maps formulas to drug databases)
 
 ---
 
@@ -143,4 +155,12 @@ Then navigate to `http://localhost:5500/templates/dashboard.html`.
 
 ## 🧪 Testing
 
-To test the **Hit Screening** module natively, a test library (`GPR35_test_library.smi`) is provided in the root directory. It contains a mix of real high-affinity agonists and low-affinity decoys to validate the XGBoost model's accuracy.
+The platform includes a set of pre-generated test datasets in `backend/test_datasets/` covering every supported format:
+- `sample_library.smi` (SMILES)
+- `sample_library.csv` (CSV with activity columns)
+- `sample_library.sdf` (3D Structures)
+- `sample_library.mol2` (3D Structures)
+- `sample_bioassay.json` (PubChem BioAssay JSON)
+- `sample_lcms.mzml` (LCMS mzML)
+
+You can upload any of these files directly into the Hit Screening UI to validate the parsing and inference pipelines.

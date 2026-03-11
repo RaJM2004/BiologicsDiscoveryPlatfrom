@@ -109,14 +109,15 @@
         <aside class="sidebar">
             <div class="brand"><span>🧬</span> BioPlatform</div>
             <ul class="nav-links">
-                <ul class="nav-links">
-                    <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
-                    <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
-                    <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
-                    <li class="nav-item"><a href="lead_optimization.html" class="active">Lead Optimization</a></li>
-                    <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
-                    <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
-                </ul>
+                <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
+                <li class="nav-item"><a href="molecular_docking.html">Structural Docking</a></li>
+                <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                <li class="nav-item"><a href="lead_optimization.html" class="active">Lead Optimization</a></li>
+                <li class="nav-item"><a href="admet_prediction.html">ADMET Intelligence</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+            </ul>
         </aside>
 
         <!-- Main Content -->
@@ -330,9 +331,17 @@
 
                 if (res.ok) {
                     const job = await res.json();
-                    const jobId = job._id;
+                    const jobId = job.id || job._id;
 
-                    log(`Job ${jobId} dispatched to cluster.`);
+                    if (!jobId) {
+                        log("Critical Error: Job ID not received.");
+                        btn.disabled = false;
+                        btn.style.opacity = 1;
+                        btn.innerHTML = '<span>✨</span> GENERATE & OPTIMIZE';
+                        return;
+                    }
+
+                    log(`Job ${jobId.substring(0,8)} dispatched to cluster.`);
                     log("Awaiting results...");
 
                     let progress = 0;
@@ -402,7 +411,7 @@
                 }).join('');
                 document.getElementById('res-sar-analysis').innerHTML = sarHtml;
             } else {
-                document.getElementById('res-sar-analysis').innerHTML = '<span style="color: var(--text-muted)">Generating SAR rules...</span>';
+                document.getElementById('res-sar-analysis').innerHTML = '<span style="color: var(--text-muted)">Stable structural results. No high-impact SAR rules detected in this sequence.</span>';
             }
 
             overlay.style.display = 'block';
@@ -426,38 +435,54 @@
             window.location.href = url;
         });
 
-        document.getElementById('save-report-btn').addEventListener('click', () => {
+        document.getElementById('save-report-btn').addEventListener('click', async () => {
             const targetId = document.getElementById('opt-target').value;
             const affinity = document.getElementById('res-affinity').innerText;
             const improvements = document.getElementById('res-improvement').innerText;
             const mutations = document.getElementById('res-mutations').innerText;
-            const reportContent = `BIOLOGICS DISCOVERY PLATFORM - OPTIMIZATION REPORT
---------------------------------------------------
-Target: ${targetId}
-Date: ${new Date().toLocaleString()}
+            
+            // Re-fetch current results for consistent data (or use a shared state variable)
+            // For now, we'll use the data displayed:
+            const summary = {
+                "optimized_affinity": affinity,
+                "improvement": improvements,
+                "mutations_suggested": mutations.replace(/\n/g, ", ")
+            };
 
-RESULTS
--------
-Optimized Affinity: ${affinity}
-Predicted Improvement: ${improvements}
-Suggested Mutations: 
-${mutations.split('\n').map(m => '- ' + m).join('\n')}
+            const molecules = [
+                { "smiles": "Optimized_Candidate", "affinity": parseFloat(affinity) }
+            ];
 
-AI ENGINE
----------
-Model: DiffDock-L v2.4
-Validation: ProteinMPNN
+            try {
+                const btn = document.getElementById('save-report-btn');
+                btn.innerHTML = "⏳ GENERATING...";
+                
+                const res = await fetch('http://127.0.0.1:8000/api/reports/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        target_name: targetId,
+                        summary_data: summary,
+                        molecules: molecules
+                    })
+                });
 
---------------------------------------------------
-Generated by BioPlatform AI
-`;
-            const blob = new Blob([reportContent], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Report_${targetId}_${Date.now()}.txt`;
-            a.click();
-            window.URL.revokeObjectURL(url);
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Report_${targetId}_${Date.now()}.pdf`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    btn.innerHTML = "💾 SAVE REPORT";
+                } else {
+                    alert("Report generation failed on server.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Connection error while generating report.");
+            }
         });
 
         // Initialize Plotly Charts

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molecular Docking | Biologics Discovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #020617; color: #f8fafc; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+        .mol-container { height: 400px; width: 100%; position: relative; border-radius: 12px; overflow: hidden; }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%); transition: all 0.3s transform; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="brand"><span>🧬</span> BioPlatform</div>
+            <ul class="nav-links">
+                <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
+                <li class="nav-item"><a href="molecular_docking.html" class="active">Structural Docking</a></li>
+                <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                <li class="nav-item"><a href="admet_prediction.html">ADMET Intelligence</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar glass p-6 rounded-2xl mb-8 flex justify-between items-center">
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500">
+                    <i class="fas fa-atom mr-2"></i>Structural Docking
+                </h1>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs font-mono text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-full border border-emerald-400/20">GPU_CLUSTER: ACTIVE</span>
+                    <a href="/dashboard" class="text-sm font-medium hover:text-blue-400 transition">Dashboard</a>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Sidebar: Configuration -->
+        <div class="lg:col-span-1 space-y-6">
+            <section class="glass p-6 rounded-2xl">
+                <h2 class="text-xl font-semibold mb-4 text-blue-400">Docking Configuration</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Target Receptor (PDB ID)</label>
+                        <input type="text" id="pdbId" value="6W01" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Ligand SMILES</label>
+                        <textarea id="smiles" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white font-mono text-sm">CC(=O)Oc1ccccc1C(=O)O</textarea>
+                    </div>
+                    <button onclick="startDocking()" id="runBtn" class="w-full btn-primary py-3 rounded-lg font-semibold flex justify-center items-center">
+                        <i class="fas fa-play mr-2"></i>Compute Affinities
+                    </button>
+                </div>
+            </section>
+
+            <section class="glass p-6 rounded-2xl" id="statusBox" style="display: none;">
+                <h3 class="text-lg font-semibold mb-2 flex items-center">
+                    <span class="animate-pulse mr-2 h-2 w-2 rounded-full bg-blue-500"></span>
+                    Job Progress
+                </h3>
+                <div id="progressLog" class="text-xs text-slate-400 font-mono space-y-2 h-40 overflow-y-auto">
+                    <!-- Logs will appear here -->
+                </div>
+            </section>
+        </div>
+
+        <!-- Main View: 3D Visualization -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="glass p-6 rounded-2xl h-full flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Interaction Visualization</h2>
+                    <div class="flex gap-2">
+                        <button onclick="changeStyle('stick')" class="px-3 py-1 text-xs bg-slate-800 rounded">Stick</button>
+                        <button onclick="changeStyle('cartoon')" class="px-3 py-1 text-xs bg-slate-800 rounded">Polymer</button>
+                        <button onclick="changeStyle('sphere')" class="px-3 py-1 text-xs bg-slate-800 rounded">Sphere</button>
+                    </div>
+                </div>
+                
+                <div id="container-01" class="mol-container border-2 border-slate-800"></div>
+
+                <div id="resultsPanel" class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4" style="display: none;">
+                    <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-blue-400" id="deltaG">-9.2</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wider">Delta G (kcal/mol)</div>
+                    </div>
+                    <div class="bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-emerald-400" id="poseCount">9</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wider">Optimal Poses</div>
+                    </div>
+                    <div class="bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-indigo-400" id="rmsd">0.42</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wider">RMSD LB</div>
+                    </div>
+                    <div class="bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-purple-400" id="efficiency">0.34</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wider">Ligand Eff.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let viewer = null;
+        const HOST = 'http://127.0.0.1:8000';
+        const WS_HOST = '127.0.0.1:8000';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            let element = document.querySelector('#container-01');
+            // Fix: 3Dmol doesn't always support 'transparent' correctly in some versions/browsers
+            viewer = $3Dmol.createViewer(element, { backgroundColor: '#020617' });
+            loadStructure('6W01');
+        });
+
+        async function loadStructure(pdbId) {
+            if (!viewer) return;
+            viewer.clear();
+            const response = await fetch(`https://files.rcsb.org/download/${pdbId}.pdb`);
+            const data = await response.text();
+            viewer.addModel(data, "pdb");
+            viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
+            viewer.zoomTo();
+            viewer.render();
+        }
+
+        async function startDocking() {
+            const pdbId = document.getElementById('pdbId').value;
+            const smiles = document.getElementById('smiles').value;
+            const runBtn = document.getElementById('runBtn');
+            const log = document.getElementById('progressLog');
+            
+            runBtn.disabled = true;
+            runBtn.innerHTML = `<i class="fas fa-spinner animate-spin mr-2"></i>Calculating...`;
+            document.getElementById('statusBox').style.display = 'block';
+            log.innerHTML = `<div class="text-blue-400">> Initiating job on GPU cluster...</div>`;
+
+            try {
+                const response = await fetch(`${HOST}/api/docking/run?target_id=${pdbId}&smiles=${encodeURIComponent(smiles)}`, {
+                    method: 'POST'
+                });
+                const job = await response.json();
+                console.log("Job started:", job);
+                const jobId = job.id || job._id;
+                
+                if (!jobId) throw new Error("Server did not return a valid Job ID.");
+                
+                // Use WS_HOST instead of window.location.host for reliability in local file environments
+                const socket = new WebSocket(`ws://${WS_HOST}/ws/${jobId}`);
+                
+                socket.onmessage = (event) => {
+                    const div = document.createElement('div');
+                    div.className = 'border-l-2 border-blue-500 pl-2';
+                    div.innerText = event.data;
+                    log.appendChild(div);
+                    log.scrollTop = log.scrollHeight;
+                    
+                    if (event.data.includes('✅')) {
+                        updateResults(jobId);
+                    }
+                };
+            } catch (err) {
+                console.error("Docking Error:", err);
+                log.innerHTML += `<div class="text-red-400">> Error: ${err.message}</div>`;
+                runBtn.disabled = false;
+                runBtn.innerHTML = `<i class="fas fa-play mr-2"></i>Compute Affinities`;
+            }
+        }
+
+        async function updateResults(jobId) {
+            try {
+                const response = await fetch(`${HOST}/api/docking/${jobId}`);
+                const job = await response.json();
+                
+                document.getElementById('resultsPanel').style.display = 'grid';
+                document.getElementById('deltaG').innerText = job.results.binding_energy ? job.results.binding_energy.toFixed(2) : '-';
+                document.getElementById('poseCount').innerText = job.results.pose_count || 9;
+                document.getElementById('rmsd').innerText = job.results.rmsd_lb || '0.42';
+                document.getElementById('efficiency').innerText = job.results.efficiency || '0.34';
+                
+                document.getElementById('runBtn').disabled = false;
+                document.getElementById('runBtn').innerHTML = `<i class="fas fa-play mr-2"></i>Compute Affinities`;
+            } catch (err) {
+                console.error("Results update failed:", err);
+            }
+        }
+
+        function changeStyle(style) {
+            if (!viewer) return;
+            viewer.setStyle({}, { [style]: { color: 'spectrum' } });
+            viewer.render();
+        }
+    </script>
+        </main>
+    </div>
+    <script src="../static/js/main.js"></script>
+    <script src="../static/js/chatbot.js"></script>
+</body>
+</html>

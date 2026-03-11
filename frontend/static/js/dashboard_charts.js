@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     initRealTimeChart();
     startActivityFeed();
-    simulateGPULoad();
+    startStatsPolling();
 });
 
 // 1. Plotly Real-Time Chart
@@ -144,13 +144,31 @@ async function startActivityFeed() {
     setInterval(updateFeed, 5000);
 }
 
-// 3. Simulate GPU Load
-function simulateGPULoad() {
-    const el = document.getElementById('gpu-load');
-    setInterval(() => {
-        // Random fluctuation between 60% and 95%
-        const load = Math.floor(Math.random() * (95 - 60 + 1) + 60);
-        el.innerText = load + "%";
-        el.style.color = load > 90 ? '#f43f5e' : '#4ade80';
-    }, 2000);
+// 3. Platform Stats Polling
+function startStatsPolling() {
+    const updateStats = async () => {
+        try {
+            const res = await fetch('http://127.0.0.1:8000/api/monitoring/stats');
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('target-count').innerText = data.target_count;
+                document.getElementById('screening-count').innerText = data.active_ai_jobs;
+                document.getElementById('experiment-count').innerText = data.experiment_count;
+                
+                const loadEl = document.getElementById('gpu-load');
+                if (loadEl) loadEl.innerText = data.gpu_load;
+                
+                const statusEl = document.getElementById('api-status');
+                if (statusEl) {
+                    statusEl.innerText = "CLUSTER: " + data.cluster_status;
+                    statusEl.style.color = data.cluster_status === "Operational" ? "#4ade80" : "#fbbf24";
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    updateStats();
+    setInterval(updateStats, 3000);
 }
