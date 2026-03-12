@@ -44,50 +44,37 @@ def extract_features(smiles: str) -> np.ndarray:
         return np.zeros(2048 + 166 + len(Descriptors.descList))
 
 print("Gathering scientific training dataset...")
-# Simulated Real Dataset for this exercise targeting generic kinases
-# In full production, this dynamically downloads from ChEMBL 
-sample_data = {
-    'smiles': [
-        "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)CN3CCN(CC3)C)NC4=NC=CC(=N4)C5=CN=CC=C5", # Imatinib (High affinity)
-        "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", # Caffeine (Low affinity)
-        "CC(C)(C)C1=CC(=NO1)NC(=O)NC2=CC=C(C=C2)C3=CN4C5=C(C=C(C=C5)OCCCCN6CCOCC6)N=C4C=C3", # Generic Kinase Inhibitor
-        "C1=CC=C(C=C1)C(=O)O", # Benzoic acid (Low)
-        "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)C(F)(F)F)NC3=NC=CC(=N3)C4=CN=CC=C4", # Nilotinib (High)
-        "CCO", # Ethanol (Zero)
-        "NC1=NC=NC2=C1N=CN2C3C(C(C(O3)COP(=O)(O)O)O)O", # AMP
-        
-        # GPR35 Specific Super-training set
-        "O=C1C=C(C(=O)O)NC2=C1C=CC=C2", # Kynurenic_Acid (NATURAL LIGAND)
-        "O=C1c2ccccc2-c3nc(ccc13)c4ccccc4", # Pamoic_Acid (HIGH AFFINITY AGONIST)
-        "CCOc1cc(=O)n2c(c1)cccc2", # Zaprinast (HIGH AFFINITY AGONIST)
-        "O=C(Cc1ccc(O)c(O)c1)C(F)(F)F", # Lodoxamide Equivalent Valid SMILES
-        "C1=CC=CC=C1", # Benzene (Trash)
-        "CC(=O)Oc1ccccc1C(=O)O", # Aspirin (Decoy)
-        "CN1C2CCC1C(C(C2)OC(=O)c3ccccc3)C(=O)OC", # Cocaine (Decoy)
-        "CC12CCC3C(C1CCC2O)CCC4=CC(=O)CCC34C", # Testosterone (Decoy)
-    ] * 50, # Replicate to simulate a batch
-    'pIC50': [
-        8.2, 
-        3.1, 
-        7.8, 
-        2.0, 
-        8.5, 
-        0.1, 
-        4.0,
-        
-        # GPR35 specific labels
-        7.8, # Kynurenic
-        8.9, # Pamoic
-        8.2, # Zaprinast
-        7.5, # Lodoxamide
-        0.0, # Benzene
-        3.2, # Aspirin
-        2.5, # Cocaine
-        1.2, # Testosterone
-    ] * 50
-}
+chembl_file = os.path.join("test_datasets", "chembl_training_data.csv")
 
-df = pd.DataFrame(sample_data)
+if os.path.exists(chembl_file):
+    print(f"Loading real-world ChEMBL dataset from {chembl_file}...")
+    df = pd.read_csv(chembl_file)
+    if 'canonical_smiles' in df.columns:
+        df = df.rename(columns={'canonical_smiles': 'smiles'})
+    print(f"Successfully loaded {len(df)} compounds.")
+else:
+    print("ChEMBL data not found. Falling back to internal simulation dataset...")
+    sample_data = {
+        'smiles': [
+            "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)CN3CCN(CC3)C)NC4=NC=CC(=N4)C5=CN=CC=C5", # Imatinib
+            "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", # Caffeine
+            "CC(C)(C)C1=CC(=NO1)NC(=O)NC2=CC=C(C=C2)C3=CN4C5=C(C=C(C=C5)OCCCCN6CCOCC6)N=C4C=C3",
+            "C1=CC=C(C=C1)C(=O)O", # Benzoic acid
+            "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)C(F)(F)F)NC3=NC=CC(=N3)C4=CN=CC=C4", # Nilotinib
+            "CCO", # Ethanol
+            "NC1=NC=NC2=C1N=CN2C3C(C(C(O3)COP(=O)(O)O)O)O", # AMP
+            "O=C1C=C(C(=O)O)NC2=C1C=CC=C2", # Kynurenic_Acid
+            "O=C1c2ccccc2-c3nc(ccc13)c4ccccc4", # Pamoic_Acid
+            "CCOc1cc(=O)n2c(c1)cccc2", # Zaprinast
+            "O=C(Cc1ccc(O)c(O)c1)C(F)(F)F", # Lodoxamide
+            "C1=CC=CC=C1", # Benzene
+            "CC(=O)Oc1ccccc1C(=O)O", # Aspirin
+            "CN1C2CCC1C(C(C2)OC(=O)c3ccccc3)C(=O)OC", # Cocaine
+            "CC12CCC3C(C1CCC2O)CCC4=CC(=O)CCC34C", # Testosterone
+        ] * 50,
+        'pIC50': [8.2, 3.1, 7.8, 2.0, 8.5, 0.1, 4.0, 7.8, 8.9, 8.2, 7.5, 0.0, 3.2, 2.5, 1.2] * 50
+    }
+    df = pd.DataFrame(sample_data)
 
 print("Extracting 2400+ mathematical features per molecule using RDKit...")
 X_list = []

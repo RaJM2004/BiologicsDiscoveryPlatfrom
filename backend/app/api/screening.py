@@ -7,7 +7,7 @@ import shutil
 import pickle
 import numpy as np
 from datetime import datetime
-from app.utils.cheminformatics import calculate_molecular_properties
+from app.utils.cheminformatics import calculate_molecular_properties, extract_features
 from app.utils.file_parsers import parse_molecules
 from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem, MACCSkeys, Descriptors
@@ -63,29 +63,7 @@ async def run_ai_screening_task(job_id: str, file_path: str):
             
         # 2. Prepare Features for the New 2400+ Parameter Model
         try:
-            mol = Chem.MolFromSmiles(smiles)
-            if not mol:
-                continue
-
-            fp_morgan = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
-            arr_morgan = np.zeros((0,), dtype=np.int8)
-            Chem.DataStructs.ConvertToNumpyArray(fp_morgan, arr_morgan)
-
-            fp_maccs = MACCSkeys.GenMACCSKeys(mol)
-            arr_maccs = np.zeros((0,), dtype=np.int8)
-            Chem.DataStructs.ConvertToNumpyArray(fp_maccs, arr_maccs)
-
-            desc_keys = [d[0] for d in Descriptors.descList]
-            arr_desc = np.zeros(len(desc_keys))
-            for i, (name, func) in enumerate(Descriptors.descList):
-                try:
-                    val = func(mol)
-                    arr_desc[i] = val if not np.isnan(val) and not np.isinf(val) else 0.0
-                except:
-                    arr_desc[i] = 0.0
-
-            features = np.concatenate((arr_morgan, arr_maccs, arr_desc))
-            features = features.reshape(1, -1) # XGBoost expects 2D array
+            features = extract_features(smiles).reshape(1, -1)
         except Exception as e:
             await manager.broadcast(f"Featurization Error: {e}", job_id)
             continue

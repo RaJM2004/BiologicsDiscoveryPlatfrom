@@ -1,7 +1,12 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 import os
+import webbrowser
+import threading
+import time
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Biologics Discovery Platform API",
@@ -24,9 +29,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount Static Files (if serving frontend from FastAPI for simple MVP)
-# In production, Nginx or similar should handle this, or a separate frontend server.
-# For this MVP, we will assume frontend is served separately or via templates.
+# Configure Paths
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+TEMPLATES_DIR = os.path.join(FRONTEND_DIR, "templates")
+STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
+
+# Mount Static Files
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+# Setup Templates
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+def open_browser():
+    """Opens the browser to the landing page after a short delay."""
+    time.sleep(2)
+    webbrowser.open("http://127.0.0.1:8000")
 from app.db.engine import init_db
 from app.api import auth, targets, screening, experiments, optimization, admin, docking, admet, chatbot
 
@@ -51,9 +69,29 @@ async def start_db():
         print(f"Promoting {email} to admin")
         existing.is_superuser = True
         await existing.save()
+    
+    # Automatically open browser if not disabled
+    if os.environ.get("AUTO_OPEN_BROWSER", "true").lower() == "true":
+        # Only open if this is the main worker (not the reloader process window)
+        # Uvicorn reload works by starting a main process and then a worker process.
+        # This will still trigger on reloads, which is what the user asked for.
+        threading.Thread(target=open_browser, daemon=True).start()
 
-@app.get("/")
-def read_root():
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    """Serve the landing page."""
+    return templates.TemplateResponse("landing.html", {"request": request})
+
+@app.get("/{page}.html", response_class=HTMLResponse)
+async def serve_html_page(request: Request, page: str):
+    """Serve other HTML templates by name."""
+    try:
+        return templates.TemplateResponse(f"{page}.html", {"request": request})
+    except Exception:
+        return HTMLResponse(content="Page not found", status_code=404)
+
+@app.get("/api/status")
+def read_root_api():
     return {"message": "Biologics Discovery Platform API is running", "version": "0.1.0"}
 
 @app.get("/health")

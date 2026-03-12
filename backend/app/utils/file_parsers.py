@@ -457,6 +457,7 @@ def _parse_bioassay_json(file_path: str) -> List[Dict[str, str]]:
 
         if assay_data and isinstance(assay_data, list):
             cids_to_lookup = []
+            sids_to_lookup = []
             for i, record in enumerate(assay_data):
                 smiles = None
                 mol_id = None
@@ -492,21 +493,34 @@ def _parse_bioassay_json(file_path: str) -> List[Dict[str, str]]:
                     mol = Chem.MolFromSmiles(smiles)
                     if mol:
                         molecules.append({"smiles": smiles, "mol_id": mol_id})
-                elif mol_id and mol_id.startswith(("CID", "cid")):
-                    # Collect CIDs for batch lookup
-                    cid_num = ''.join(filter(str.isdigit, mol_id.split("(")[0]))
-                    if cid_num:
-                        cids_to_lookup.append((cid_num, mol_id))
-                elif mol_id:
-                    # Try numeric CID from the record
+                else:
+                    found_cid = False
                     for key in ["cid", "CID", "PUBCHEM_CID"]:
-                        if key in record:
+                        if key in record and record[key]:
                             try:
                                 cid_num = str(int(record[key]))
                                 cids_to_lookup.append((cid_num, mol_id))
+                                found_cid = True
+                                break
                             except (ValueError, TypeError):
                                 pass
-                            break
+                    if not found_cid:
+                        for key in ["sid", "SID", "PUBCHEM_SID"]:
+                            if key in record and record[key]:
+                                try:
+                                    sid_num = str(int(record[key]))
+                                    sids_to_lookup.append((sid_num, mol_id))
+                                    break
+                                except (ValueError, TypeError):
+                                    pass
+
+            # Resolve SIDs to CIDs
+            if sids_to_lookup:
+                sid_map = _resolve_sids_to_cids([s[0] for s in sids_to_lookup])
+                for sid_num, mol_id in sids_to_lookup:
+                    if sid_num in sid_map:
+                        # Grab the first linked CID
+                        cids_to_lookup.append((sid_map[sid_num][0], mol_id))
 
             # Batch lookup CIDs via PubChem PUG REST
             if cids_to_lookup:
@@ -521,6 +535,7 @@ def _parse_bioassay_json(file_path: str) -> List[Dict[str, str]]:
     # --- Format 2: Flat JSON array ---
     elif isinstance(data, list):
         cids_to_lookup = []
+        sids_to_lookup = []
         for i, record in enumerate(data):
             if not isinstance(record, dict):
                 continue
@@ -555,14 +570,33 @@ def _parse_bioassay_json(file_path: str) -> List[Dict[str, str]]:
                 if mol:
                     molecules.append({"smiles": smiles, "mol_id": mol_id})
             else:
+                found_cid = False
                 for key in ["cid", "CID", "PUBCHEM_CID"]:
-                    if key in record:
+                    if key in record and record[key]:
                         try:
                             cid_num = str(int(record[key]))
                             cids_to_lookup.append((cid_num, mol_id))
+                            found_cid = True
+                            break
                         except (ValueError, TypeError):
                             pass
-                        break
+                if not found_cid:
+                    for key in ["sid", "SID", "PUBCHEM_SID"]:
+                        if key in record and record[key]:
+                            try:
+                                sid_num = str(int(record[key]))
+                                sids_to_lookup.append((sid_num, mol_id))
+                                break
+                            except (ValueError, TypeError):
+                                pass
+
+        # Resolve SIDs to CIDs
+        if sids_to_lookup:
+            sid_map = _resolve_sids_to_cids([s[0] for s in sids_to_lookup])
+            for sid_num, mol_id in sids_to_lookup:
+                if sid_num in sid_map:
+                    # Grab the first linked CID
+                    cids_to_lookup.append((sid_map[sid_num][0], mol_id))
 
         if cids_to_lookup:
             smiles_map = _lookup_cids_to_smiles([c[0] for c in cids_to_lookup])
@@ -600,7 +634,7 @@ def _lookup_cids_to_smiles(cids: List[str], batch_size: int = 100) -> Dict[str, 
     for i in range(0, len(unique_cids), batch_size):
         batch = unique_cids[i:i + batch_size]
         cid_str = ",".join(batch)
-        url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cid_str}/property/CanonicalSMILES/JSON"
+        url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cid_str}/property/CanonicalSMILES,IsomericSMILES/JSON"
 
         try:
             resp = requests.get(url, timeout=30)
@@ -608,7 +642,7 @@ def _lookup_cids_to_smiles(cids: List[str], batch_size: int = 100) -> Dict[str, 
                 props = resp.json().get("PropertyTable", {}).get("Properties", [])
                 for prop in props:
                     cid = str(prop.get("CID", ""))
-                    smiles = prop.get("CanonicalSMILES", "")
+                    smiles = prop.get("CanonicalSMILES") or prop.get("IsomericSMILES") or prop.get("SMILES") or ""
                     if cid and smiles:
                         smiles_map[cid] = smiles
                 print(f"   ✓ Resolved {len(props)} CIDs in batch {i // batch_size + 1}")
@@ -618,3 +652,40 @@ def _lookup_cids_to_smiles(cids: List[str], batch_size: int = 100) -> Dict[str, 
             print(f"   ⚠️ PubChem lookup failed: {e}")
 
     return smiles_map
+
+
+def _resolve_sids_to_cids(sids: List[str], batch_size: int = 100) -> Dict[str, List[str]]:
+    """
+    Batch lookup PubChem SIDs → CIDs via PUG REST API.
+    Returns a dict mapping SID string → List[CID string].
+    """
+    import requests
+
+    sid_map = {}
+    if not sids:
+        return sid_map
+
+    unique_sids = list(set(sids))
+    print(f"🔬 Resolving {len(unique_sids)} SIDs to CIDs from PubChem...")
+
+    for i in range(0, len(unique_sids), batch_size):
+        batch = unique_sids[i:i + batch_size]
+        sid_str = ",".join(batch)
+        url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/substance/sid/{sid_str}/cids/JSON"
+
+        try:
+            resp = requests.get(url, timeout=30)
+            if resp.status_code == 200:
+                info_list = resp.json().get("InformationList", {}).get("Information", [])
+                for info in info_list:
+                    sid = str(info.get("SID", ""))
+                    cids = [str(c) for c in info.get("CID", []) if c]
+                    if sid and cids:
+                        sid_map[sid] = cids
+                print(f"   ✓ Resolved {len(info_list)} SIDs in batch {i // batch_size + 1}")
+            else:
+                print(f"   ⚠️ PubChem API returned status {resp.status_code} for SID batch {i // batch_size + 1}")
+        except Exception as e:
+            print(f"   ⚠️ PubChem SID lookup failed: {e}")
+
+    return sid_map

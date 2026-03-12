@@ -67,7 +67,7 @@ async def run_admet_prediction(job_id: str):
             "Veber_Pass": props.get("RotatableBonds", 0) <= 10,
             "Lead_Likeness": props.get("MolWt", 0) < 450 and props.get("LogP", 0) < 4.5
         }
-    }
+    }   
 
     job.status = "Completed"
     job.results = results

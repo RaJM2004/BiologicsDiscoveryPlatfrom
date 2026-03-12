@@ -115,32 +115,36 @@ def mutate_molecule(mol):
     except:
         return None, None
 
+from app.utils.cheminformatics import calculate_molecular_properties, extract_features
+
 def score_molecule(smiles):
     """
-    Scores a molecule using the XGBoost model.
+    Scores a molecule using the XGBoost model and penalizes for synthetic difficulty.
     """
     props = calculate_molecular_properties(smiles)
     if not props: return -10.0
     
-    features = np.array([[
-        props["MolWt"], props["LogP"], props["NumHDonors"], 
-        props["NumHAcceptors"], props["RotatableBonds"]
-    ]])
+    # Generate 2400+ scientific features (Morgan FP + MACCS + Descriptors)
+    features = extract_features(smiles).reshape(1, -1)
     
+    score = -5.0 # Baseline
     if AI_MODEL:
         try:
-            return float(AI_MODEL.predict(features)[0])
-        except:
+            # Predict pIC50
+            score = float(AI_MODEL.predict(features)[0])
+        except Exception as e:
+            print(f"Scoring Error: {e}")
             pass
     
-    # Fallback score with jitter to ensure SAR reports have data
-    # Favors LogP ~3 and MW < 500
-    res = -6.0
-    if props["IsLipinskiCompliant"]: res -= 1.0
-    
-    # Add +/- 0.5 jitter based on SMILES string length as a mock "complexity" factor
-    jitter = (len(smiles) % 10) / 10.0 - 0.5
-    return res + jitter
+    # 🧪 SCIENTIFIC RIGOR: Synthetic Accessibility Penalty
+    # SA Score: 1-10 (1=Easy, 10=Impossible)
+    # Penalize anything above 5.0 to steer the GA away from 'impossible' molecules
+    sa = props.get("SA_Score", 5.0)
+    if sa > 5.0:
+        penalty = (sa - 5.0) * 0.4
+        score -= penalty
+        
+    return round(score, 2)
 
 from app.utils.websockets import manager
 
