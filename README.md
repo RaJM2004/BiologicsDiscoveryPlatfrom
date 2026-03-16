@@ -6,17 +6,21 @@ An advanced, production-grade AI drug discovery platform designed for pharmaceut
 
 ## 🚀 Key Features
 
-*   **Target Discovery (Neural-Bio Interface):** Instantly resolve gene symbols (e.g., EGFR, TP53) to UniProt primary accessions. Automatically fetches genomic sequences, verified 3D structures from **RCSB PDB**, and seamlessly falls back to **AlphaFold** `.cif` predictions when crystal structures are unavailable.
-*   **Virtual Hit Screening (Multi-Format):** Accepts diverse scientific data formats (`.smi`, `.sdf`, `.mol2`, `.csv`, `.json` BioAssay, `.mzml` LCMS) and screens them seamlessly. Converts compounds into 2400+ dimensional mathematical features to predict binding affinities (pIC50) using an optimized **XGBoost Regressor**.
-*   **Molecular Visualization:** Fully interactive embedded 3D molecule viewing (via `3Dmol.js`), rendering PDB structures and AlphaFold Confidence Arrays directly within the UI.
-*   **Lead Optimization:** Evolutionary Generative AI strategies (mutations like heteroatom swaps, additions) for bio-realistic SAR analysis.
-*   *(Coming Soon)* **Molecular Docking:** AutoDock Vina containerized execution.
+*   **Target Identification (Neural-Bio Interface):** Instantly resolve gene symbols (e.g., EGFR, TP53) to UniProt primary accessions. Automatically fetches genomic sequences, verified 3D structures from **RCSB PDB**, and AlphaFold predictions.
+*   **Virtual Hit Screening:** Converts compounds into 2400+ dimensional mathematical features to predict binding affinities (pIC50) using an optimized **XGBoost Regressor**.
+*   **Molecular Docking:** physics-based docking simulations using **AutoDock Vina** to calculate binding energies and visualize ligand-receptor interactions.
+*   **Lead Optimization:** Generative AI strategies for bio-realistic structural modifications to improve potency and safety.
+*   **ADMET Intelligence:** Automated prediction of Absorption, Distribution, Metabolism, Excretion, and Toxicity profiles.
+*   **Robotic Validation:** Integration with **Opentrons OT-2** for automated wet-lab validation and protocol generation.
+*   **Preformulation Analysis:** Physicochemical stability engine calculating API traits, solubility predictions, and stability risks.
+*   **Formulation Design:** AI-driven design of drug delivery systems, suggesting optimal dosage forms, surfactants, and pH environments.
+*   **Clinical Candidate Selection:** Final synthesis of pipeline data to identify the most viable candidates for clinical trials.
 
 ---
 
 ## 🏗️ High-Level Architecture
 
-The platform follows a decoupled microservice architecture, allowing the high-compute AI backend to scale independently of the client interface.
+The platform follows a modular, production-grade architecture designed for high-throughput scientific analysis.
 
 ```mermaid
 graph TD
@@ -24,79 +28,65 @@ graph TD
     Scientist([🧑‍🔬 Pharma Scientist])
     
     %% Frontend
-    subgraph Frontend [Vanilla Client UI]
-        UI[HTML / CSS / JS UI]
-        3DMol[3DMol.js Viewer]
+    subgraph Frontend [Scientific Dashboard]
+        UI[Glassmorphism UI]
+        Visualization[3DMol.js / Plotly / Chart.js]
     end
 
-    %% API Gateway
-    subgraph Backend [FastAPI Microservices]
-        API[FastAPI Gateway]
-        TargetService[Target Discovery Service]
-        ScreeningService[Virtual Screening Engine]
-        AI_Models[(XGBoost / PyTorch Models)]
+    %% Backend Services
+    subgraph Services [FastAPI Modular Backend]
+        API[API Gateway]
+        TargetSvc[Target Hub]
+        ScreeningSvc[AI Screening]
+        DockingSvc[Physics Docking]
+        ADMETSvc[ADMET Intelligence]
+        RobotSvc[Robotic Lab Control]
+        PreformSvc[Preformulation Engine]
+        FormSvc[Formulation Designer]
     end
 
-    %% External Data Sources
-    subgraph External [Global Bio-Databases]
-        UniProt[(UniProt API)]
-        PDB[(RCSB PDB)]
-        AlphaFold[(AlphaFold DB)]
-        ChEMBL[(ChEMBL API)]
+    %% Storage & Models
+    subgraph Data [Storage & Intelligence]
+        DB[(MongoDB / Beanie)]
+        AI_Models[(XGBoost / PyTorch)]
+        Vina[[AutoDock Vina Engine]]
     end
 
     %% Connections
     Scientist -->|Interact| UI
-    UI <-->|REST API| API
-    UI -->|Render 3D| 3DMol
+    UI <-->|JSON/REST| API
+    UI -->|Render| Visualization
     
-    API --> TargetService
-    API --> ScreeningService
+    API --> TargetSvc
+    API --> ScreeningSvc
+    API --> DockingSvc
+    API --> ADMETSvc
+    API --> RobotSvc
+    API --> PreformSvc
+    API --> FormSvc
     
-    TargetService <--> UniProt
-    TargetService <--> PDB
-    TargetService <--> AlphaFold
-    TargetService <--> ChEMBL
-    
-    ScreeningService <--> |Extract Features: RDKit| AI_Models
+    ScreeningSvc --> AI_Models
+    DockingSvc --> Vina
+    TargetSvc <--> DB
+    ADMETSvc --> AI_Models
 ```
 
 ---
 
-## ⚙️ High-Level Workflow
-
-The sequence of operations a scientist takes to go from a disease mechanism to a list of potential drug candidates.
+The platform maps the real-world drug development pipeline into a digital workflow.
 
 ```mermaid
-sequenceDiagram
-    actor Scientist
-    participant UI as Platform Interface
-    participant TD as Target Discovery
-    participant Ext as Public DBs (UniProt/PDB)
-    participant VS as Virtual Screening (Multi-Format)
-    participant Parser as File Parsers Utility
-
-    Scientist->>UI: Enter Gene Symbol (e.g., "GPR35")
-    UI->>TD: POST /api/targets/discover/GPR35
-    TD->>Ext: Resolve Gene to Accession (P00533)
-    Ext-->>TD: Genomic Seq, PDB IDs, AlphaFold URLs
-    TD->>Ext: Fetch known ChEMBL Ligands
-    Ext-->>TD: Bioactivity Dataset
-    TD-->>UI: Target Profile Complete
-    UI-->>Scientist: Render 3D Protein Structure
-
-    Scientist->>UI: Upload Library (.sdf, .csv, .mzml, .json, etc)
-    UI->>VS: POST /api/screening/run
-    VS->>Parser: parse_molecules(file_path)
-    Note right of Parser: Detects extension<br/>Extracts 3D/JSON/XML<br/>Resolves PubChem CIDs to SMILES
-    Parser-->>VS: Unified List[{smiles, mol_id}]
-    
-    loop Feature Extraction
-        VS->>VS: RDKit: Convert SMILES -> 2400+ Features
-        VS->>VS: XGBoost: Predict Binding Affinity (pIC50)
-    end
-    VS-->>UI: Top N Candidates Sorted by Affinity
-    UI-->>Scientist: Display Viable Hit Compounds
+timeline
+    title Biologics Discovery Pipeline
+    Target Identification : Gene Symbol Resolution : 3D Structure Fetching : ligand-Receptor Analysis
+    AI Hit Screening : Library Upload : XGBoost Scoring : Top Candidate Selection
+    Molecular Docking : Physics Simulation : Delta G Calculation : Interaction Visualization
+    Lead Optimization : SAR Analysis : AI Mutations : Potency Tuning
+    ADMET Prediction : Absorption : Toxicity : Clearance
+    Robotic Validation : OT-2 Protocol Gen : Wet-Lab Integration : Result Tracking
+    Preformulation : Physicochemical Traits : Solubility : Stability Risks
+    Formulation Design : Dosage Form : Surfactant Selection : pH Optimization
+    Clinical Candidate : Candidate Synthesis : Decision Support : Blinded Results
 ```
 
 ### Supported Data Formats (Hit Screening)

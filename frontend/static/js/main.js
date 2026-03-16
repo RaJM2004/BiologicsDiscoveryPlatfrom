@@ -1,18 +1,41 @@
 // Main JavaScript file for global interactions
 
 const API_BASE_URL = "http://127.0.0.1:8000";
+console.log("Main JS v1.0.2 Loading...");
+window.BIO_PLATFORM_MAIN_LOADED = true;
 
+// Global Helpers (must be outside DOMContentLoaded for inline onclick handlers)
+window.handleUnauthorized = () => {
+    console.warn("Session expired. Redirecting to login...");
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('role');
+    window.location.href = 'login.html';
+};
+
+window.logout = () => {
+    localStorage.clear();
+    window.location.href = 'login.html';
+};
+
+window.goToPreformulation = (compoundId, smiles) => {
+    const url = `preformulation_analysis.html?compound_id=${encodeURIComponent(compoundId)}&smiles=${encodeURIComponent(smiles)}&auto_run=true`;
+    window.location.href = url;
+};
+
+window.goToFormulation = (compoundId) => {
+    const url = `formulation_design.html?compound_id=${encodeURIComponent(compoundId)}&auto_run=true`;
+    window.location.href = url;
+};
+
+window.goToADMET = (smiles) => {
+    const url = `admet_prediction.html?smiles=${encodeURIComponent(smiles)}&auto_run=true`;
+    window.location.href = url;
+};
+
+// Application Logic
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Biologics Discovery Platform loaded.');
-
-    // Global Auth Helper
-    window.handleUnauthorized = () => {
-        console.warn("Session expired. Redirecting to login...");
-        localStorage.removeItem('token');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('role');
-        window.location.href = 'login.html';
-    };
 
     // Highlight active link
     const currentPath = window.location.pathname.split('/').pop();
@@ -28,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Check if we are on the dashboard to load API data
+    // Handle stats update if on dashboard
     if (document.getElementById('experiment-count')) {
         updateDashboardStats();
     }

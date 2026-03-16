@@ -170,14 +170,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 3. Logic
     const toggle = document.getElementById("bio-chat-toggle");
-    const window = document.getElementById("bio-chat-window");
+    const chatWindow = document.getElementById("bio-chat-window");
     const close = document.getElementById("close-chat");
     const input = document.getElementById("chat-input");
     const send = document.getElementById("chat-send");
     const messages = document.getElementById("chat-messages");
 
     function toggleChat() {
-        window.classList.toggle("open");
+        chatWindow.classList.toggle("open");
     }
 
     toggle.addEventListener("click", toggleChat);

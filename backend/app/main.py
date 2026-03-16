@@ -98,7 +98,7 @@ def read_root_api():
 def health_check():
     return {"status": "ok"}
 
-from app.api import auth, targets, screening, experiments, optimization, admin, docking, admet, robot, chatbot, reports, monitoring
+from app.api import auth, targets, screening, experiments, optimization, admin, docking, admet, robot, chatbot, reports, monitoring, preformulation, formulation
 
 # ... existing code ...
 
@@ -115,6 +115,8 @@ app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(chatbot.router, prefix="/api/chat", tags=["Chatbot"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(monitoring.router, prefix="/api/monitoring", tags=["Monitoring"])
+app.include_router(preformulation.router, prefix="/api/preformulation", tags=["Preformulation"])
+app.include_router(formulation.router, prefix="/api/formulation", tags=["Formulation"])
 
 from fastapi import WebSocket, WebSocketDisconnect
 from app.utils.websockets import manager

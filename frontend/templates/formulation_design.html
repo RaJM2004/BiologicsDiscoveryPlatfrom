@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulation Design | Biologics Discovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="/static/js/main.js?v=1.0.2"></script>
+    <script src="/static/js/chatbot.js?v=1.0.2" defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: var(--background-dark); color: var(--text-main); }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid var(--border-color); }
+        .card-neo { background: var(--background-card); border: 1px solid var(--border-color); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="brand"><span>🧬</span> BioPlatform</div>
+            <ul class="nav-links">
+                <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Identification</a></li>
+                <li class="nav-item"><a href="hit_screening.html">AI Hit Screening</a></li>
+                <li class="nav-item"><a href="molecular_docking.html">Molecular Docking</a></li>
+                <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
+                <li class="nav-item"><a href="admet_prediction.html">ADMET Prediction</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Robotic Validation</a></li>
+                <li class="nav-item"><a href="preformulation_analysis.html">Preformulation Analysis</a></li>
+                <li class="nav-item"><a href="formulation_design.html">Formulation Design</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Clinical Candidate Selection</a></li>
+                <li class="nav-item" style="margin-top: auto;"><a href="#" onclick="logout()">Logout</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar glass p-6 rounded-2xl mb-8 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="h-10 w-10 bg-gradient-to-tr from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-pills text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight">Formulation Design</h1>
+                        <p class="text-[10px] text-slate-400 font-mono">DRUG PRODUCT DEVELOPMENT V1.0</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs font-mono text-orange-400 bg-orange-400/10 px-3 py-1 rounded-full border border-orange-400/20">STATUS: DESIGNER_READY</span>
+                </div>
+            </header>
+
+            <section class="glass p-8 rounded-3xl mb-8">
+                <h2 class="text-2xl font-bold mb-6">Candidate Selection</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1">
+                        <label class="block text-xs uppercase text-slate-500 mb-2">Compound ID</label>
+                        <input type="text" id="compoundId" placeholder="LEAD-001" 
+                               class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 font-mono focus:ring-2 focus:ring-orange-500 outline-none transition">
+                    </div>
+                    <div class="md:col-span-1">
+                        <label class="block text-xs uppercase text-slate-500 mb-2">Administration Route</label>
+                        <select id="route" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-orange-500 outline-none transition">
+                            <option value="injection">Injectable</option>
+                            <option value="oral">Oral (Solid)</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-1 flex items-end">
+                        <button onclick="generateDesign()" id="designBtn" 
+                                class="w-full py-4 bg-gradient-to-r from-orange-600 to-red-500 rounded-xl font-bold hover:scale-[1.01] transition shadow-lg shadow-orange-900/20">
+                            Generate Formulation
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <div id="designResult" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Recipe -->
+                <div class="glass p-8 rounded-3xl relative overflow-hidden">
+                    <div class="absolute -right-8 -bottom-8 opacity-10 text-8xl"><i class="fas fa-prescription-bottle-alt"></i></div>
+                    <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                        <i class="fas fa-list-check text-orange-400"></i>
+                        Composition Design
+                    </h3>
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center p-4 bg-slate-800/50 rounded-2xl">
+                            <span class="text-slate-400">Formulation Type</span>
+                            <span id="formType" class="font-bold text-white">--</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-slate-800/50 rounded-2xl">
+                            <span class="text-slate-400">Drug Concentration</span>
+                            <span id="drugConc" class="font-bold text-orange-400">--</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 bg-slate-800/30 rounded-2xl border border-slate-700">
+                                <label class="text-[10px] uppercase text-slate-500 block mb-1">Buffer System</label>
+                                <div id="buffer" class="font-bold text-sm">--</div>
+                            </div>
+                            <div class="p-4 bg-slate-800/30 rounded-2xl border border-slate-700">
+                                <label class="text-[10px] uppercase text-slate-500 block mb-1">Stabilizer</label>
+                                <div id="stabilizer" class="font-bold text-sm">--</div>
+                            </div>
+                            <div class="p-4 bg-slate-800/30 rounded-2xl border border-slate-700">
+                                <label class="text-[10px] uppercase text-slate-500 block mb-1">Surfactant</label>
+                                <div id="surfactant" class="font-bold text-sm">--</div>
+                            </div>
+                            <div class="p-4 bg-slate-800/30 rounded-2xl border border-slate-700">
+                                <label class="text-[10px] uppercase text-slate-500 block mb-1">Target pH</label>
+                                <div id="targetPh" class="font-bold text-lg text-emerald-400">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation/Rationale -->
+                <div class="space-y-6">
+                    <div class="glass p-8 rounded-3xl">
+                        <h3 class="text-xl font-bold mb-4">Design Rationale</h3>
+                        <p id="rationaleText" class="text-slate-400 leading-relaxed">
+                            The formulation was optimized based on the preformulation stability profile. High-concentration buffering ensures pH stability, while specific stabilizers mitigate aggregation risks identified during physicochemical screening.
+                        </p>
+                    </div>
+                    <div class="card-neo p-8 rounded-3xl border-orange-500/20">
+                        <h3 class="text-lg font-bold mb-2">Next Steps</h3>
+                        <ul class="text-sm text-slate-400 space-y-2">
+                             <li><i class="fas fa-check-circle text-orange-400 mr-2"></i> Prepare batch for Wet-Lab validation</li>
+                             <li><i class="fas fa-check-circle text-orange-400 mr-2"></i> Accelerated stability testing (40°C/75% RH)</li>
+                             <li><i class="fas fa-check-circle text-orange-400 mr-2"></i> Sterility and Endotoxin testing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = '/api/formulation';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('compound_id')) document.getElementById('compoundId').value = params.get('compound_id');
+            
+            if (params.get('auto_run') === 'true') {
+                setTimeout(generateDesign, 500);
+            }
+        });
+
+        async function generateDesign() {
+            const compound_id = document.getElementById('compoundId').value;
+            const route = document.getElementById('route').value;
+            const btn = document.getElementById('designBtn');
+            const resultDiv = document.getElementById('designResult');
+
+            if (!compound_id) {
+                alert('Please enter a Compound ID.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-cog animate-spin mr-2"></i> Designing...';
+
+            try {
+                const response = await fetch(`${API_BASE}/design`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ compound_id, route })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Design generation failed');
+                }
+                
+                const data = await response.json();
+                renderDesign(data);
+                resultDiv.classList.remove('hidden');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Formulation';
+            }
+        }
+
+        function renderDesign(data) {
+            document.getElementById('formType').innerText = data.formulation_type;
+            document.getElementById('drugConc').innerText = data.drug_concentration;
+            document.getElementById('buffer').innerText = data.buffer;
+            document.getElementById('stabilizer').innerText = data.stabilizer;
+            document.getElementById('surfactant').innerText = data.surfactant;
+            document.getElementById('targetPh').innerText = data.recommended_ph;
+        }
+    </script>
+</body>
+</html>

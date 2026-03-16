@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wet-Lab Validation - Biologics Discovery Platform</title>
-    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/chatbot.js" defer></script>
     <style>
         .experiment-card {
             transition: all 0.3s ease;
@@ -101,13 +103,16 @@
             </div>
             <ul class="nav-links">
                 <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
-                <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
-                <li class="nav-item"><a href="molecular_docking.html">Structural Docking</a></li>
-                <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Identification</a></li>
+                <li class="nav-item"><a href="hit_screening.html">AI Hit Screening</a></li>
+                <li class="nav-item"><a href="molecular_docking.html">Molecular Docking</a></li>
                 <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
-                <li class="nav-item"><a href="admet_prediction.html">ADMET Intelligence</a></li>
-                <li class="nav-item"><a href="wet_lab.html" class="active">Wet-Lab Validation</a></li>
-                <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+                <li class="nav-item"><a href="admet_prediction.html">ADMET Prediction</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Robotic Validation</a></li>
+                <li class="nav-item"><a href="preformulation_analysis.html">Preformulation Analysis</a></li>
+                <li class="nav-item"><a href="formulation_design.html">Formulation Design</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Clinical Candidate Selection</a></li>
+                <li class="nav-item" style="margin-top: auto;"><a href="#" onclick="logout()">Logout</a></li>
             </ul>
         </aside>
 
@@ -312,6 +317,8 @@
                     if (e.status === 'Completed') { statusClass = 'status-completed'; icon = '✅'; }
                     if (e.status === 'Failed') { statusClass = 'status-danger'; icon = '❌'; }
 
+                    const isCompleted = e.status === 'Completed';
+
                     return `
                         <div class="glass-card experiment-card" style="padding: 1.25rem; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
                             <div style="display: flex; align-items: center; gap: 1rem;">
@@ -325,11 +332,17 @@
                                     </div>
                                 </div>
                             </div>
-                            <div style="text-align: right;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
                                 <div class="${statusClass} status-badge">
                                     ${e.status}
                                 </div>
-                                <div style="margin-top: 0.5rem; font-size: 0.75rem; color: rgba(255,255,255,0.3);">
+                                ${isCompleted ? `
+                                    <button onclick="window.goToPreformulation('${e.name}', 'NC1=C2N=CN(C3OC(COP(O)(=O)OP(O)(=O)OP(O)(O)=O)C(O)C3O)C2=NC=N1')" 
+                                            style="padding: 4px 10px; font-size: 10px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #a78bfa; border-radius: 4px; cursor: pointer;">
+                                        Analyze Formability →
+                                    </button>
+                                ` : ''}
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.3);">
                                     ${new Date(e.created_at).toLocaleDateString()}
                                 </div>
                             </div>
@@ -409,7 +422,6 @@
             }
         });
     </script>
-    <script src="../static/js/chatbot.js"></script>
 </body>
 
 </html>

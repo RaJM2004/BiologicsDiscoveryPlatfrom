@@ -5,9 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ADMET Intelligence | Biologics Discovery</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/main.js?v=1.0.2"></script>
+    <script src="/static/js/chatbot.js?v=1.0.2" defer></script>
+    <script>
+        // Emergency fallback if main.js fails to expose functions globally
+        function safeGoToPreformulation() {
+            if (typeof window.goToPreformulation === 'function') {
+                window.goToPreformulation('ADMET-' + Date.now().toString().slice(-4), document.getElementById('smiles').value);
+            } else {
+                console.error("Critical: window.goToPreformulation still missing. Retrying redirect...");
+                const compoundId = 'ADMET-' + Date.now().toString().slice(-4);
+                const smiles = document.getElementById('smiles').value;
+                const url = `preformulation_analysis.html?compound_id=${encodeURIComponent(compoundId)}&smiles=${encodeURIComponent(smiles)}&auto_run=true`;
+                window.location.href = url;
+            }
+        }
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background: var(--background-dark); color: var(--text-main); }
@@ -24,13 +40,16 @@
             <div class="brand"><span>🧬</span> BioPlatform</div>
             <ul class="nav-links">
                 <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
-                <li class="nav-item"><a href="target_explorer.html">Target Explorer</a></li>
-                <li class="nav-item"><a href="molecular_docking.html">Structural Docking</a></li>
-                <li class="nav-item"><a href="hit_screening.html">Hit Screening</a></li>
+                <li class="nav-item"><a href="target_explorer.html">Target Identification</a></li>
+                <li class="nav-item"><a href="hit_screening.html">AI Hit Screening</a></li>
+                <li class="nav-item"><a href="molecular_docking.html">Molecular Docking</a></li>
                 <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
-                <li class="nav-item"><a href="admet_prediction.html" class="active">ADMET Intelligence</a></li>
-                <li class="nav-item"><a href="wet_lab.html">Wet-Lab Validation</a></li>
-                <li class="nav-item"><a href="blinded_results.html">Blinded Results</a></li>
+                <li class="nav-item"><a href="admet_prediction.html">ADMET Prediction</a></li>
+                <li class="nav-item"><a href="wet_lab.html">Robotic Validation</a></li>
+                <li class="nav-item"><a href="preformulation_analysis.html">Preformulation Analysis</a></li>
+                <li class="nav-item"><a href="formulation_design.html">Formulation Design</a></li>
+                <li class="nav-item"><a href="blinded_results.html">Clinical Candidate Selection</a></li>
+                <li class="nav-item" style="margin-top: auto;"><a href="#" onclick="logout()">Logout</a></li>
             </ul>
         </aside>
 
@@ -114,11 +133,17 @@
                     </div>
                 </div>
 
-                <div class="glass p-8 rounded-3xl">
-                    <h3 class="text-xl font-bold mb-2">Scientific Interpretation</h3>
-                    <p id="interpretation" class="text-slate-400 leading-relaxed text-sm italic">
-                        The molecule shows moderate lipophilicity with high probability of blood-brain barrier penetration. CYP inhibition profiles suggest minimal drug-drug interaction risks.
-                    </p>
+                <div class="glass p-8 rounded-3xl flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">Scientific Interpretation</h3>
+                        <p id="interpretation" class="text-slate-400 leading-relaxed text-sm italic">
+                            The molecule shows moderate lipophilicity with high probability of blood-brain barrier penetration. CYP inhibition profiles suggest minimal drug-drug interaction risks.
+                        </p>
+                    </div>
+                    <button onclick="safeGoToPreformulation()" 
+                            class="ml-6 px-6 py-3 bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 rounded-xl font-bold hover:bg-indigo-500 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+                        Proceed to Preformulation <i class="fas fa-arrow-right"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -127,6 +152,16 @@
     <script>
         let radar = null;
         const HOST = 'http://127.0.0.1:8000';
+
+        // Initialize from URL params
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('smiles')) document.getElementById('smiles').value = params.get('smiles');
+            
+            if (params.get('auto_run') === 'true') {
+                setTimeout(runAnalysis, 500);
+            }
+        });
 
         async function runAnalysis() {
             const smiles = document.getElementById('smiles').value;
@@ -248,7 +283,5 @@
     </script>
         </main>
     </div>
-    <script src="../static/js/main.js"></script>
-    <script src="../static/js/chatbot.js"></script>
 </body>
 </html>
