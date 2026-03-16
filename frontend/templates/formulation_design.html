@@ -128,6 +128,13 @@
                              <li><i class="fas fa-check-circle text-orange-400 mr-2"></i> Accelerated stability testing (40°C/75% RH)</li>
                              <li><i class="fas fa-check-circle text-orange-400 mr-2"></i> Sterility and Endotoxin testing</li>
                         </ul>
+                        <div class="mt-6 flex gap-4">
+                            <button id="downloadPdfBtn" onclick="downloadFormulationPdf()" 
+                                    class="w-full px-6 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl font-bold hover:bg-red-500 hover:text-white transition flex items-center gap-2 justify-center">
+                                Download PDF Report <i class="fas fa-file-pdf"></i>
+                            </button>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -190,6 +197,12 @@
             document.getElementById('stabilizer').innerText = data.stabilizer;
             document.getElementById('surfactant').innerText = data.surfactant;
             document.getElementById('targetPh').innerText = data.recommended_ph;
+        }
+
+        async function downloadFormulationPdf() {
+            const compound_id = document.getElementById('compoundId').value;
+            if (!compound_id) return;
+            window.location.href = `${API_BASE}/design/${compound_id}/pdf`;
         }
     </script>
 </body>

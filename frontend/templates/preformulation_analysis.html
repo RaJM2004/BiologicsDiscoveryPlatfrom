@@ -131,10 +131,16 @@
                                 Awaiting analysis results...
                             </p>
                         </div>
-                        <button id="goToFormulationBtn" onclick="window.goToFormulation(document.getElementById('compoundId').value)" 
-                                class="hidden ml-6 px-6 py-3 bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 rounded-xl font-bold hover:bg-indigo-500 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-                            Design Formulation <i class="fas fa-flask"></i>
-                        </button>
+                        <div class="flex gap-4">
+                            <button id="goToFormulationBtn" onclick="window.goToFormulation(document.getElementById('compoundId').value)" 
+                                    class="hidden px-6 py-3 bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 rounded-xl font-bold hover:bg-indigo-500 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+                                Design Formulation <i class="fas fa-flask"></i>
+                            </button>
+                            <button id="downloadPdfBtn" onclick="downloadPreformulationPdf()" 
+                                    class="hidden px-6 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl font-bold hover:bg-red-500 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+                                Download PDF <i class="fas fa-file-pdf"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -181,6 +187,7 @@
                 renderResults(data);
                 results.classList.remove('hidden');
                 document.getElementById('goToFormulationBtn').classList.remove('hidden');
+                document.getElementById('downloadPdfBtn').classList.remove('hidden');
             } catch (err) {
                 alert('Error: ' + err.message);
             } finally {
@@ -217,6 +224,12 @@
             ).join('');
 
             document.getElementById('summaryText').innerText = `Analysis complete for ${data.compound_id}. The molecule exhibits ${data.solubility_prediction.toLowerCase()} solubility and violates ${data.lipinski_violations} Lipinski rules. Stability profile suggests ${data.stability_risk.length ? 'monitoring for ' + data.stability_risk.join(', ') : 'a stable profile'}.`;
+        }
+
+        async function downloadPreformulationPdf() {
+            const compound_id = document.getElementById('compoundId').value;
+            if (!compound_id) return;
+            window.location.href = `${API_BASE}/report/${compound_id}/pdf`;
         }
     </script>
 </body>

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Response
 from typing import List
 from app.models.formulation import FormulationDesign
 from app.models.preformulation import PreformulationReport
 from app.utils.drug_development import design_formulation_logic
+from app.utils.report_generator import generate_formulation_pdf
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -37,3 +38,23 @@ async def get_design(compound_id: str):
     if not design:
         raise HTTPException(status_code=404, detail="Design not found")
     return design
+
+@router.get("/design/{compound_id}/pdf")
+async def get_design_pdf(compound_id: str):
+    design = await FormulationDesign.find_one(FormulationDesign.compound_id == compound_id)
+    if not design:
+        raise HTTPException(status_code=404, detail="Design not found")
+    
+    pre_report = await PreformulationReport.find_one(PreformulationReport.compound_id == compound_id)
+    if not pre_report:
+         raise HTTPException(status_code=404, detail="Associated preformulation report not found")
+
+    pdf_content = generate_formulation_pdf(design.dict(), pre_report.dict())
+    
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=Formulation_{compound_id}.pdf"
+        }
+    )

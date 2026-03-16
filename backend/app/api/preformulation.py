@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Response
 from typing import List
 from app.models.preformulation import PreformulationReport
 from app.utils.drug_development import calculate_preformulation_properties
+from app.utils.report_generator import generate_preformulation_pdf
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -34,3 +35,19 @@ async def get_report(compound_id: str):
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     return report
+
+@router.get("/report/{compound_id}/pdf")
+async def get_report_pdf(compound_id: str):
+    report = await PreformulationReport.find_one(PreformulationReport.compound_id == compound_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    pdf_content = generate_preformulation_pdf(report.dict())
+    
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=Preformulation_{compound_id}.pdf"
+        }
+    )
