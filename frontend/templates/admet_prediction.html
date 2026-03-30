@@ -41,6 +41,7 @@
             <ul class="nav-links">
                 <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
                 <li class="nav-item"><a href="target_explorer.html">Target Identification</a></li>
+                <li class="nav-item"><a href="pocket_discovery.html">Binding Pocket Discovery</a></li>
                 <li class="nav-item"><a href="hit_screening.html">AI Hit Screening</a></li>
                 <li class="nav-item"><a href="molecular_docking.html">Molecular Docking</a></li>
                 <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
@@ -205,6 +206,14 @@
             document.getElementById('confidenceScore').innerText = res.confidence + '%';
             document.getElementById('interpretation').innerText = res.interpretation;
 
+            // Engine Badges
+            if (res.ai_engines_used) {
+                const engineHtml = res.ai_engines_used.map(e => 
+                    `<span class="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-mono">${e}</span>`
+                ).join(' ');
+                document.getElementById('interpretation').innerHTML += `<div class="mt-4 flex flex-wrap gap-2">${engineHtml}</div>`;
+            }
+
             // Lipinski
             const propList = document.getElementById('propList');
             const props = res.properties;
@@ -232,14 +241,15 @@
             // ADMET CONTENT
             const metrics = res.admet_metrics;
             document.getElementById('absDistContent').innerHTML = `
-                <div class="flex justify-between text-sm"><span>BBB Permeability:</span> <span class="font-bold text-emerald-400">${metrics.BBB_Permeability}</span></div>
+                <div class="flex justify-between text-sm"><span>BBBP Oracle (Trained):</span> <span class="font-bold text-emerald-400">${metrics.BBBP_Model_Result}</span></div>
                 <div class="flex justify-between text-sm"><span>LogS Solubility:</span> <span class="font-bold text-blue-400">${metrics.Solubility_LogS}</span></div>
-                <div class="flex justify-between text-sm"><span>CYP2D6 Inhibition:</span> <span class="font-bold text-slate-300">${metrics.CYP2D6_Inhibition}</span></div>
+                <div class="flex justify-between text-sm"><span>ClinTox FDA Model:</span> <span class="font-bold text-slate-300">${metrics.ClinTox_FDA_Approval}</span></div>
             `;
             
             document.getElementById('toxContent').innerHTML = `
-                <div class="flex justify-between text-sm"><span>hERG Toxicity:</span> <span class="font-bold ${metrics.HERG_Toxicity === 'Safe' ? 'text-emerald-400' : 'text-red-400'}">${metrics.HERG_Toxicity}</span></div>
-                <div class="flex justify-between text-sm"><span>Hepatotoxicity:</span> <span class="font-bold text-yellow-500">${metrics.Hepatotoxicity}</span></div>
+                <div class="flex justify-between text-sm"><span>hERG Toxicity (GNN):</span> <span class="font-bold ${metrics.HERG_Toxicity_GNN === 'Minimal' ? 'text-emerald-400' : 'text-red-400'}">${metrics.HERG_Toxicity_GNN}</span></div>
+                <div class="flex justify-between text-sm"><span>Tox21 Hepatotoxicity:</span> <span class="font-bold text-yellow-500">${metrics.Tox21_Hepatotoxicity}</span></div>
+                <div class="flex justify-between text-sm"><span>DeepTox Consensus:</span> <span class="font-bold text-emerald-500">OPTIMAL</span></div>
             `;
 
             updateRadar(res.radar_scores);

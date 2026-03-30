@@ -15,6 +15,11 @@ SECRET_KEY = "super-secret-key-change-this"
 
 def verify_token_manual(token: str):
     try:
+        # Add padding if missing
+        padding = 4 - (len(token) % 4)
+        if padding < 4:
+            token += "=" * padding
+            
         decoded = base64.urlsafe_b64decode(token).decode()
         payload_str, signature = decoded.rsplit(".", 1)
         expected_sig = hmac.new(SECRET_KEY.encode(), payload_str.encode(), hashlib.sha256).hexdigest()

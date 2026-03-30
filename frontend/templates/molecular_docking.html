@@ -17,7 +17,7 @@
         .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%); transition: all 0.3s transform; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4); }
     </style>
-</head>
+</head> 
 <body class="min-h-screen">
     <div class="app-container">
         <aside class="sidebar">
@@ -25,6 +25,7 @@
             <ul class="nav-links">
                 <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
                 <li class="nav-item"><a href="target_explorer.html">Target Identification</a></li>
+                <li class="nav-item"><a href="pocket_discovery.html">Binding Pocket Discovery</a></li>
                 <li class="nav-item"><a href="hit_screening.html">AI Hit Screening</a></li>
                 <li class="nav-item"><a href="molecular_docking.html" class="active">Molecular Docking</a></li>
                 <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
@@ -194,12 +195,30 @@
                 const response = await fetch(`${HOST}/api/docking/${jobId}`);
                 const job = await response.json();
                 
-                document.getElementById('resultsPanel').style.display = 'grid';
+                document.getElementById('resultsPanel').style.display = 'block';
                 document.getElementById('deltaG').innerText = job.results.binding_energy ? job.results.binding_energy.toFixed(2) : '-';
                 document.getElementById('poseCount').innerText = job.results.pose_count || 9;
                 document.getElementById('rmsd').innerText = job.results.rmsd_lb || '0.42';
                 document.getElementById('efficiency').innerText = job.results.efficiency || '0.34';
                 
+                // Fetch and Render Docked Ligand
+                const structRes = await fetch(`${HOST}/api/docking/${jobId}/structure`);
+                if (structRes.ok) {
+                    const ligandData = await structRes.text();
+                    
+                    // We don't clear the viewer here because we want to see ligand INSIDE protein
+                    // But we might want to clear previous ligands if user runs multiple times
+                    // viewer.clear(); // If we clear, we must re-add protein
+                    
+                    // Best way: Load protein separately once, then add ligand.
+                    const ligandModel = viewer.addModel(ligandData, "pdb"); // pdbqt is mostly compatible with pdb for 3Dmol
+                    viewer.setStyle({model: ligandModel.getID()}, {stick: {radius: 0.2, colorscheme: 'cyanCarbon'}});
+                    
+                    // Highlight the pocket area
+                    viewer.zoomTo({model: ligandModel.getID()});
+                    viewer.render();
+                }
+
                 document.getElementById('runBtn').disabled = false;
                 document.getElementById('runBtn').innerHTML = `<i class="fas fa-play mr-2"></i>Compute Affinities`;
             } catch (err) {
@@ -208,8 +227,14 @@
         }
 
         function changeStyle(style) {
-            if (!viewer) return;
-            viewer.setStyle({}, { [style]: { color: 'spectrum' } });
+            if (!viewer || viewer.models.length === 0) return;
+            // First model (0) is always the protein
+            viewer.setStyle({model: 0}, { [style]: { color: 'spectrum' } });
+            
+            // If ligand is present (model 1), keep it as highlighted sticks
+            if (viewer.models.length > 1) {
+                viewer.setStyle({model: 1}, {stick: {radius: 0.25, colorscheme: 'cyanCarbon'}});
+            }
             viewer.render();
         }
     </script>

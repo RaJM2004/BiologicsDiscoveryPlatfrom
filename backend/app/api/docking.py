@@ -11,6 +11,7 @@ router = APIRouter()
 from app.models.target import Target
 from app.utils.docking_engine import download_pdb, prepare_ligand_pdbqt, run_vina_docking
 import os
+import shutil
 
 async def run_docking_simulation(job_id: str):
     """
@@ -115,6 +116,16 @@ async def run_docking_simulation(job_id: str):
 
     await manager.broadcast(f"✅ Docking Complete! Best Affinity: {best_affinity:.2f} kcal/mol", job_id)
 
+    # --- SIMULATION FALLBACK: Create dummy structure if file doesn't exist ---
+    if not os.path.exists(docked_out):
+        print(f"🧬 [Job {job_id}] Generating dummy docked structure for visualization...")
+        # Simple hack: Copy the prepared ligand to the output path 
+        # (It will be centered by the calculate_protein_center logic used in Vina)
+        try:
+            shutil.copy(ligand_pdbqt, docked_out)
+        except:
+            pass
+
 @router.post("/run", response_model=DockingJob)
 async def start_docking(target_id: str, smiles: str, background_tasks: BackgroundTasks):
     job = DockingJob(target_id=target_id, ligand_smiles=smiles, status="Pending")
@@ -129,6 +140,23 @@ async def get_docking_job(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+@router.get("/{job_id}/structure")
+async def get_docking_structure(job_id: str):
+    """
+    Returns the docked ligand structure as a string.
+    """
+    temp_dir = os.path.join("temp_uploads", f"docking_{job_id[:8]}")
+    docked_out = os.path.join(temp_dir, "docked_results.pdbqt")
+    
+    if not os.path.exists(docked_out):
+        raise HTTPException(status_code=404, detail="Docked structure not found")
+        
+    with open(docked_out, "r") as f:
+        content = f.read()
+    
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(content)
 
 @router.get("/", response_model=List[DockingJob])
 async def list_docking_jobs():

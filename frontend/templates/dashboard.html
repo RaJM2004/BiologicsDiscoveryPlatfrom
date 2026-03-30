@@ -10,41 +10,6 @@
     <script>
         const token = localStorage.getItem('token');
         if (!token) window.location.href = 'login.html';
-
-        // Robust Fetch Interceptor
-        const { fetch: originalFetch } = window;
-        window.fetch = async (...args) => {
-            let [resource, config] = args;
-            config = config || {};
-            const token = localStorage.getItem('token');
-
-            // Add auth header if token exists and URL targets API
-            if (token) {
-                config.headers = config.headers || {};
-                if (!config.headers['Authorization']) {
-                    config.headers['Authorization'] = 'Bearer ' + token;
-                }
-                if (!config.headers['Content-Type']) {
-                    config.headers['Content-Type'] = 'application/json';
-                }
-            }
-
-            const response = await originalFetch(resource, config);
-
-            // Handle global 401
-            if (response.status === 401) {
-                // If it's not the login page, redirect
-                if (!window.location.pathname.includes('login.html')) {
-                    // Optional: logout(); 
-                }
-            }
-            return response;
-        };
-
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        }
     </script>
 </head>
 
@@ -56,8 +21,9 @@
                 <span>🧬</span> BioPlatform
             </div>
             <ul class="nav-links">
-                <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
+                <li class="nav-item"><a href="dashboard.html" class="active">Dashboard</a></li>
                 <li class="nav-item"><a href="target_explorer.html">Target Identification</a></li>
+                <li class="nav-item"><a href="pocket_discovery.html">Binding Pocket Discovery</a></li>
                 <li class="nav-item"><a href="hit_screening.html">AI Hit Screening</a></li>
                 <li class="nav-item"><a href="molecular_docking.html">Molecular Docking</a></li>
                 <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
@@ -66,8 +32,12 @@
                 <li class="nav-item"><a href="preformulation_analysis.html">Preformulation Analysis</a></li>
                 <li class="nav-item"><a href="formulation_design.html">Formulation Design</a></li>
                 <li class="nav-item"><a href="blinded_results.html">Clinical Candidate Selection</a></li>
-                <li class="nav-item" style="margin-top: auto;"><a href="#" onclick="logout()">Logout</a></li>
             </ul>
+            <div class="sidebar-footer">
+                <div class="nav-item">
+                    <a href="#" onclick="logout()"><span>🚪</span> Logout</a>
+                </div>
+            </div>
         </aside>
 
         <!-- Main Content -->
@@ -80,9 +50,6 @@
                     <div id="api-status"
                         style="padding: 0.25rem 0.75rem; border-radius: 999px; background: #334155; font-size: 0.875rem; color: #94a3b8;">
                         Connecting...
-                    </div>
-                    <div class="user-profile">
-                        <span>Welcome, Scientist</span>
                     </div>
                 </div>
             </div>
@@ -137,42 +104,24 @@
                                 id="gpu-load">0%</span>
                             <span style="font-size: 0.875rem; color: var(--text-muted);">GPU-01</span>
                         </div>
-                        <!-- EKG Line Animation -->
-                        <div
-                            style="height: 2px; width: 100%; background: #334155; margin-top: 1rem; position: relative; overflow: hidden;">
-                            <div
-                                style="position: absolute; width: 30%; height: 100%; background: linear-gradient(90deg, transparent, #f43f5e, transparent); animation: ekg 1.5s ease-in-out infinite;">
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Main Dashboard Layout -->
+
+
+            <!-- Lower Section: Activity & Charts -->
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-
-                <!-- Chart Section -->
-                <div class="glass-card tech-corner" style="padding: 1.5rem; height: 100%;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
-                        <h3 class="card-title">Real-Time Throughput (Mols/Sec)</h3>
-                        <span
-                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(14, 165, 233, 0.1); color: var(--primary-color); border: 1px solid var(--primary-color); border-radius: 4px;">LIVE
-                            STREAM</span>
-                    </div>
-                    <div id="throughput-chart" style="width: 100%; height: 350px;"></div>
+                <div class="glass-card" style="padding: 1.5rem; overflow: hidden;">
+                    <h3 class="card-title" style="margin-bottom: 1rem;">Molecular Discovery Stream</h3>
+                    <div id="throughput-chart" style="width: 100%; height: 300px;"></div>
                 </div>
-
-                <!-- Feed Section -->
-                <div class="glass-card tech-corner" style="padding: 1.5rem; height: 100%;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
-                        <h3 class="card-title">System Logs</h3>
-                        <div
-                            style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 10px #4ade80; animation: pulse 2s infinite;">
-                        </div>
+                <div class="glass-card" style="padding: 1.5rem; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 class="card-title">Compute Cluster Logs</h3>
+                        <div id="pulse-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #4ade80;"></div>
                     </div>
-                    <div id="activity-feed" style="max-height: 350px; overflow-y: auto; padding-right: 0.5rem;">
+                    <div id="activity-feed" class="terminal-log" style="height: 300px; font-size: 0.75rem; overflow-y: auto;">
                         <!-- JS injected content -->
                     </div>
                 </div>

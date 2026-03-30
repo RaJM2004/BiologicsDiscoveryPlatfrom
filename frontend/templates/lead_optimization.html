@@ -111,6 +111,7 @@
             <ul class="nav-links">
                 <li class="nav-item"><a href="dashboard.html">Dashboard</a></li>
                 <li class="nav-item"><a href="target_explorer.html">Target Identification</a></li>
+                <li class="nav-item"><a href="pocket_discovery.html">Binding Pocket Discovery</a></li>
                 <li class="nav-item"><a href="hit_screening.html">AI Hit Screening</a></li>
                 <li class="nav-item"><a href="molecular_docking.html">Molecular Docking</a></li>
                 <li class="nav-item"><a href="lead_optimization.html">Lead Optimization</a></li>
@@ -178,7 +179,7 @@
 
                     <!-- Configuration Panel -->
                     <div class="glass-card" style="padding: 1.5rem;">
-                        <h3 class="card-title" style="margin-bottom: 1.5rem;">Configuration</h3>
+                        <h3 class="card-title" style="margin-bottom: 1.5rem;">Engine Configuration</h3>
 
                         <div style="margin-bottom: 1.5rem;">
                             <label
@@ -190,26 +191,29 @@
 
                         <div style="margin-bottom: 1.5rem;">
                             <label
-                                style="display: block; color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">Optimization
-                                Goal</label>
-                            <select
+                                style="display: block; color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">Generative
+                                Strategy</label>
+                            <select id="opt-model"
                                 style="width: 100%; padding: 0.75rem; background: rgba(15,23,42,0.5); border: 1px solid var(--border-color); color: white; border-radius: 6px;">
-                                <option>Maximize Affinity</option>
-                                <option>Maximize Stability</option>
-                                <option>Minimize Toxicity</option>
+                                <option value="ga">Genetic Algorithm (Evolutionary)</option>
+                                <option value="reinvent">REINVENT (AstraZeneca RL-Policy)</option>
+                                <option value="molgpt">MolGPT (Transformer Generation)</option>
                             </select>
+                            <div style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--primary-color);">
+                                * REINVENT requires high-fidelity property benchmarks.
+                            </div>
                         </div>
 
                         <div style="margin-bottom: 1.5rem;">
                             <label
-                                style="display: block; color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">Mutation
-                                Rate</label>
-                            <input type="range" style="width: 100%; accent-color: var(--primary-color);">
-                            <div
-                                style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
-                                <span>Conservative</span>
-                                <span>Aggressive</span>
-                            </div>
+                                style="display: block; color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">Optimization
+                                Goal</label>
+                            <select id="opt-goal"
+                                style="width: 100%; padding: 0.75rem; background: rgba(15,23,42,0.5); border: 1px solid var(--border-color); color: white; border-radius: 6px;">
+                                <option value="affinity">Maximize Affinity</option>
+                                <option value="stability">Maximize Stability</option>
+                                <option value="toxicity">Minimize Toxicity</option>
+                            </select>
                         </div>
 
                         <button id="run-genai-btn"
@@ -264,7 +268,8 @@
 
                 <div style="margin-bottom: 0.5rem; margin-top: 1rem;">
                     <div class="metric-label" style="margin-bottom: 0.5rem;">SAR Insights (Structure-Activity)</div>
-                    <div id="res-sar-analysis" style="font-size: 0.75rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px; border: 1px solid #334155; max-height: 120px; overflow-y: auto;">
+                    <div id="res-sar-analysis"
+                        style="font-size: 0.75rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px; border: 1px solid #334155; max-height: 120px; overflow-y: auto;">
                         <!-- SAR insights injected here -->
                     </div>
                 </div>
@@ -295,6 +300,8 @@
 
         document.getElementById('run-genai-btn').addEventListener('click', async () => {
             const targetId = document.getElementById('opt-target').value;
+            const model = document.getElementById('opt-model').value;
+            const goal = document.getElementById('opt-goal').value;
             const btn = document.getElementById('run-genai-btn');
 
             if (!targetId) { log("Error: No Target ID provided."); return; }
@@ -303,25 +310,23 @@
             btn.disabled = true;
             btn.style.opacity = 0.5;
             btn.innerHTML = 'Computing...'; // Spinner usually
-            document.getElementById('sim-status').innerText = 'RUNNING INFERENCE...';
+            document.getElementById('sim-status').innerText = 'RUNNING ' + model.toUpperCase() + '...';
             document.getElementById('sim-status').style.color = '#facc15';
 
             overlay.style.display = 'none';
-            terminal.innerHTML = '> Starting Optimization Task...<br>'; // Clear previous logs a bit
+            terminal.innerHTML = `> Starting ${model.toUpperCase()} Optimization Task...<br>`;
 
-            log("Initializing DiffDock-L context...");
+            log("Initializing AI engine context...");
             await new Promise(r => setTimeout(r, 800));
-            log("Loading PDB crystal structure for " + targetId + "...");
+            log("Configuring multi-objective rewards for " + goal + "...");
             await new Promise(r => setTimeout(r, 1200));
-            log("Running ProteinMPNN for backbone stabilization...");
 
-            // Mock API Call (or real if backend was ready for heavy compute)
+            // Mock API Call
             try {
-                // We actually call the mock backend endpoint we saw earlier
-                const res = await fetch('http://127.0.0.1:8000/api/optimization/run?target_id=' + targetId, {
+                const res = await fetch(`http://127.0.0.1:8000/api/optimization/run?target_id=${targetId}&model=${model}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({}) // Backend expects constraints in body but query params worked in signature? check backend
+                    body: JSON.stringify({ goal: goal })
                 });
 
                 // Actually my backend signature: run_optimization(target_id: str, constraints: dict, ...) and uses Query for target_id if not in body.
@@ -344,7 +349,7 @@
                         return;
                     }
 
-                    log(`Job ${jobId.substring(0,8)} dispatched to cluster.`);
+                    log(`Job ${jobId.substring(0, 8)} dispatched to cluster.`);
                     log("Awaiting results...");
 
                     let progress = 0;
@@ -402,7 +407,7 @@
 
             const badges = results.modifications.map(m => `<span class="mutation-badge">${m}</span>`).join('');
             document.getElementById('res-mutations').innerHTML = badges;
-            
+
             if (results.sar_analysis && results.sar_analysis.length > 0) {
                 const sarHtml = results.sar_analysis.map(s => {
                     const color = s.affinity_change > 0 ? '#4ade80' : '#f43f5e';
@@ -443,7 +448,7 @@
             const affinity = document.getElementById('res-affinity').innerText;
             const improvements = document.getElementById('res-improvement').innerText;
             const mutations = document.getElementById('res-mutations').innerText;
-            
+
             // Re-fetch current results for consistent data (or use a shared state variable)
             // For now, we'll use the data displayed:
             const summary = {
@@ -459,7 +464,7 @@
             try {
                 const btn = document.getElementById('save-report-btn');
                 btn.innerHTML = "⏳ GENERATING...";
-                
+
                 const res = await fetch('http://127.0.0.1:8000/api/reports/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

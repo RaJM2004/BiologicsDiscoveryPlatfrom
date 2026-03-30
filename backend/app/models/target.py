@@ -18,6 +18,8 @@ class Target(Document):
     pdb_ids: List[str] = []
     alphafold_url: Optional[str] = None
     known_ligands: List[dict] = []
+    pockets: List[dict] = [] # Identified binding pockets (fpocket/p2rank)
+    interaction_partners: List[dict] = [] # Known Protein-Protein Interaction (PPI) Partners (STRING DB)
     status: str = "Candidate" # Candidate, Screened, Validated, Rejected
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()

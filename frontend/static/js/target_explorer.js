@@ -120,6 +120,35 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
+        // PPI Interactome Section
+        let ppiHtml = '';
+        if (targetData.interaction_partners && targetData.interaction_partners.length > 0) {
+            const ppiRows = targetData.interaction_partners.map(p => `
+                 <div style="background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.2); padding: 0.75rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <div>
+                        <span style="font-weight: bold; color: var(--primary-color);">${p.symbol}</span>
+                        <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 0.5rem;">(${p.method})</span>
+                        <div style="font-size: 0.65rem; color: #64748b;">${p.type}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.8rem; font-weight: bold; color: ${p.score > 0.8 ? 'var(--success)' : '#facc15'}">${(p.score * 100).toFixed(0)}%</div>
+                        <div style="font-size: 0.6rem; color: var(--text-muted);">STRING SCORE</div>
+                    </div>
+                 </div>
+            `).join('');
+
+            ppiHtml = `
+                <div style="margin-top: 2rem;">
+                    <h4 style="color: var(--text-main); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                        PPI Interactome Mapping <span style="font-size: 0.7rem; color: #64748b; font-weight: normal;">(STRING BENCHMARK)</span>
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        ${ppiRows}
+                    </div>
+                </div>
+            `;
+        }
+
         card.innerHTML = `
             <div class="card-header" style="margin-bottom: 0;">
                 <h3 style="font-size: 1.5rem; font-weight: 600; color: var(--text-main); margin: 0;">${targetData.name}</h3>
@@ -130,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.95rem;">${targetData.description || 'Protein signature retrieved.'}</p>
             
             ${sequenceHtml}
+            ${ppiHtml}
             ${ligandsHtml}
         `;
 

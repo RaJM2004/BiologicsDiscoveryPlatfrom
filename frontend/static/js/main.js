@@ -1,8 +1,53 @@
 // Main JavaScript file for global interactions
 
 const API_BASE_URL = "http://127.0.0.1:8000";
-console.log("Main JS v1.0.2 Loading...");
+console.log("Main JS v1.0.3 Loading with Auth Interceptor...");
 window.BIO_PLATFORM_MAIN_LOADED = true;
+
+// --- Global Fetch Interceptor ---
+const { fetch: originalFetch } = window;
+window.fetch = async (...args) => {
+    let [resource, config] = args;
+    config = config || {};
+    const token = localStorage.getItem('token');
+
+    // Determine URL string safely
+    const urlStr = typeof resource === 'string' ? resource : (resource ? resource.url : "");
+    const isLocalApi = urlStr && (urlStr.startsWith('/') || urlStr.startsWith(API_BASE_URL) || urlStr.startsWith(window.location.origin));
+    
+    // Safety Log
+    console.debug(`[Fetch Interceptor] Targeting: ${urlStr} | Local: ${isLocalApi}`);
+
+    if (token && isLocalApi) {
+        config.headers = config.headers || {};
+        // Only add header if not already present
+        if (!config.headers['Authorization']) {
+            config.headers['Authorization'] = 'Bearer ' + token;
+        }
+        // Force JSON for API calls if body is present and not FormData
+        if (config.body && !(config.body instanceof FormData) && !config.headers['Content-Type']) {
+            config.headers['Content-Type'] = 'application/json';
+        }
+    }
+
+    try {
+        const response = await originalFetch(resource, config);
+        
+        // Global 401 handling
+        if (response.status === 401) {
+            const path = window.location.pathname;
+            if (!path.includes('login.html') && !path.includes('landing.html')) {
+                console.warn("Unauthorized access. Redirecting...");
+                window.handleUnauthorized();
+            }
+        }
+        return response;
+    } catch (err) {
+        console.error(`[Fetch Interceptor Error] ${urlStr}:`, err);
+        throw err;
+    }
+};
+
 
 // Global Helpers (must be outside DOMContentLoaded for inline onclick handlers)
 window.handleUnauthorized = () => {

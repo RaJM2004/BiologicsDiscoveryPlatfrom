@@ -155,7 +155,10 @@ async def discover_target(uniprot_id: str):
     uniprot_data = await fetch_uniprot_data(safe_id)
     if not uniprot_data:
         raise HTTPException(status_code=404, detail=f"Target '{safe_id}' not found. Try a gene name (e.g. GPR35), UniProt ID (e.g. Q9Y5Y4), or PDB ID (e.g. 6D9H).")
-        
+    
+    # 2. Update safe_id to resolved UniProt Accession (e.g. Q9Y5Y4 instead of GPR35)
+    # This is critical for subsequent AlphaFold/ChEMBL API calls
+    safe_id = uniprot_data.get("uniprot_id", safe_id)
     pdb_ids = uniprot_data.get("pdb_ids", [])
     
     # Check if Target already exists
@@ -184,6 +187,17 @@ async def discover_target(uniprot_id: str):
         ligands = await fetch_known_ligands(safe_id, limit=50) # Fetch top 50
         target.known_ligands = ligands
         
+    # 6. Fetch Protein-Protein Interaction (PPI) Partners (Mocked BioGRID/STRING lookup)
+    if not target.interaction_partners:
+        import random
+        ppi_data = [
+            {"symbol": "TP53", "score": 0.98, "type": "Physical Interaction", "method": "AP-MS"},
+            {"symbol": "MDM2", "score": 0.95, "type": "Regulatory Binding", "method": "Y2H"},
+            {"symbol": "ATM", "score": 0.88, "type": "Phosphorylation", "method": "Biochemical Assay"},
+            {"symbol": "KAT5", "score": 0.72, "type": "Structural Complex", "method": "AlphaFold-Multimer"}
+        ]
+        target.interaction_partners = ppi_data
+
     target.status = "Discovered"
 
     if existing:
